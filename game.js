@@ -1121,6 +1121,8 @@ function updatePlayer() {
     if (distance > 1) {
       GAME.player.x += (dx / distance) * step;
       GAME.player.y += (dy / distance) * step;
+    } else {
+      GAME.pointerActive = false;
     }
   }
   const { left, right } = getPlayAreaBounds();
@@ -3387,20 +3389,24 @@ canvas.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   canvas.setPointerCapture(e.pointerId);
   clearMovementKeys();
-  setPointerTarget(e.clientX, e.clientY);
 });
 
 canvas.addEventListener("pointerup", (e) => {
   canvas.focus();
   if (GAME.state === "play") {
     e.preventDefault();
-    GAME.pointerActive = false;
+    setPointerTarget(e.clientX, e.clientY);
     return;
   }
   if (GAME.state === "title") {
     e.preventDefault();
     e.stopPropagation();
     handleTitlePointer(e.clientX, e.clientY);
+    return;
+  }
+  if (GAME.state === "result" || GAME.state === "result_fade") {
+    e.preventDefault();
+    backToTitle();
   }
 });
 
@@ -3413,9 +3419,8 @@ canvas.addEventListener("lostpointercapture", () => {
 });
 
 canvas.addEventListener("pointermove", (e) => {
-  if (GAME.state === "play" && GAME.pointerActive) {
+  if (GAME.state === "play") {
     e.preventDefault();
-    setPointerTarget(e.clientX, e.clientY);
     return;
   }
   if (GAME.state !== "title") {

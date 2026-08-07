@@ -36,6 +36,7 @@ body {
 canvas {
   width: min(360px, calc(100vw - 48px));
   height: auto;
+  touch-action: none;
   border: 2px solid #2b3142;
   background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
