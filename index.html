@@ -10,8 +10,17 @@
   <div class="app-shell">
     <div class="game-column">
       <canvas id="game" width="360" height="640" aria-label="縦スクロールゲーム" role="img"></canvas>
+      <div class="touch-controls" aria-label="タッチ操作">
+        <button class="touch-button touch-start" type="button" data-action="start">START</button>
+        <div class="touch-pad">
+          <button class="touch-button" type="button" data-key="up" aria-label="上">↑</button>
+          <button class="touch-button" type="button" data-key="left" aria-label="左">←</button>
+          <button class="touch-button" type="button" data-key="down" aria-label="下">↓</button>
+          <button class="touch-button" type="button" data-key="right" aria-label="右">→</button>
+        </div>
+      </div>
       <div class="help">
-        <div class="keys">← → 移動 / Enter 開始 / R リトライ</div>
+        <div class="keys">← → 移動 / Enter 開始 / R リトライ / T タイトル</div>
       </div>
     </div>
     <aside class="ranking-panel" aria-label="ランキング">

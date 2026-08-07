@@ -18,7 +18,7 @@ const END_CLEAR_MAX_MS = 2000;
 const RESULT_FADE_MS = 800;
 const END_IDS = ["hat", "sunglass", "flower", "apple", "ribbon", "gameover"];
 const ENDS_STORAGE_KEY = "mayousaEndsCollected";
-const OFFICIAL_SITE_URL = "https://sites.google.com/view/matomayo";
+const PERFORMANCE_INFO_URL = "https://sites.google.com/view/wishcdl";
 const TRUE_END_PHASE2_LINE_MS = 4000;
 const TRUE_END_PHASE2_LINES = [
   { speaker: "ハット", text: "ふう\nやっと着いた！" },
@@ -289,6 +289,9 @@ const GAME = {
   trueEndCreditStopBaseY: 0,
   titleStartTime: performance.now(),
   prevState: "title",
+  testMode: false,
+  testKeyCount: 0,
+  testKeyLastAt: 0,
 };
 
 const FONT_FAMILY = "\"Noto Sans JP\", \"Hiragino Kaku Gothic ProN\", \"Meiryo\", sans-serif";
@@ -446,7 +449,7 @@ const titleUiElements = [
     rect: { x: 0, y: 0, w: 0, h: 0 },
     visible: true,
     enabled: true,
-    onClick: () => openExternal(OFFICIAL_SITE_URL),
+    onClick: () => openExternal(PERFORMANCE_INFO_URL),
   },
   {
     id: "secret",
@@ -591,6 +594,7 @@ function getResultSummary(overrides = null) {
     sceneName,
     title,
     completedAt: GAME.resultCompletedAt || new Date().toISOString(),
+    testMode: GAME.testMode,
   };
 }
 
@@ -1386,6 +1390,7 @@ function update() {
   const stageIndex = Math.floor(GAME.distance / 1000);
 
   for (const obstacle of GAME.obstacles) {
+    if (GAME.testMode) continue;
     if (checkCollision(playerBox, getObstacleHitbox(obstacle))) {
       if (GAME.time < GAME.invincibleUntil) continue;
       const idx = GAME.currentMayousaIndex;
@@ -2755,7 +2760,7 @@ function drawTitle() {
   ctx.globalAlpha = 1;
 
   const linkMainFont = `bold 11px ${FONT_FAMILY}`;
-  const linkMainText = "制作元サイトへ >";
+  const linkMainText = "公演情報へ >";
   const linkMainSize = 11;
   const linkPaddingX = 7;
   const linkPaddingY = 6;
@@ -2955,8 +2960,8 @@ function drawResult(overrides = null) {
       ctx.lineWidth = 4;
       ctx.fillStyle = "#ffffff";
       ctx.globalAlpha = pulse;
-      ctx.strokeText("Rでリトライ", GAME.width / 2, GAME.height - 24);
-      ctx.fillText("Rでリトライ", GAME.width / 2, GAME.height - 24);
+      ctx.strokeText("Rでリトライ / Tでタイトル", GAME.width / 2, GAME.height - 24);
+      ctx.fillText("Rでリトライ / Tでタイトル", GAME.width / 2, GAME.height - 24);
       ctx.globalAlpha = 1;
     }
   }
@@ -3254,6 +3259,26 @@ function handleTitlePointer(clientX, clientY) {
   if (hit) hit.onClick();
 }
 
+function handleHiddenTestKey() {
+  const now = performance.now();
+  GAME.testKeyCount = now - GAME.testKeyLastAt <= 1600 ? GAME.testKeyCount + 1 : 1;
+  GAME.testKeyLastAt = now;
+  if (GAME.testKeyCount >= 5) {
+    GAME.testMode = !GAME.testMode;
+    GAME.testKeyCount = 0;
+    console.info(`Mayousa test mode ${GAME.testMode ? "enabled" : "disabled"}`);
+  }
+}
+
+function backToTitle() {
+  GAME.keys.left = false;
+  GAME.keys.right = false;
+  GAME.keys.up = false;
+  GAME.keys.down = false;
+  GAME.obstacles = [];
+  GAME.state = "title";
+}
+
 window.addEventListener("keydown", (e) => {
   if (e.key === "ArrowLeft") GAME.keys.left = true;
   if (e.key === "ArrowRight") GAME.keys.right = true;
@@ -3268,17 +3293,24 @@ window.addEventListener("keydown", (e) => {
     startGame();
   }
 
-  if (GAME.state === "title" && (e.key === "t" || e.key === "T")) {
-    if (e.shiftKey) {
-      resetEndsCollected();
-    } else {
-      setAllEndsCollected();
+  if (e.key === "m" || e.key === "M") {
+    handleHiddenTestKey();
+  }
+
+  if (e.key === "t" || e.key === "T") {
+    if (
+      GAME.state === "result" ||
+      GAME.state === "result_fade" ||
+      GAME.state === "secret" ||
+      (GAME.state === "true_ending" && GAME.trueEndPhase >= 6)
+    ) {
+      backToTitle();
     }
   }
 
   if (GAME.state === "true_ending" && GAME.trueEndPhase >= 6) {
     if (e.key === "Enter" || e.key === "r" || e.key === "R") {
-      GAME.state = "title";
+      backToTitle();
     }
   }
 
@@ -3317,6 +3349,33 @@ window.addEventListener("keyup", (e) => {
   if (e.key === "s" || e.key === "S") GAME.keys.down = false;
   if (e.key === "a" || e.key === "A") GAME.keys.left = false;
   if (e.key === "d" || e.key === "D") GAME.keys.right = false;
+});
+
+document.querySelectorAll("[data-key]").forEach((button) => {
+  const key = button.dataset.key;
+  const setPressed = (pressed) => {
+    GAME.keys[key] = pressed;
+    button.classList.toggle("is-pressed", pressed);
+  };
+  button.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    button.setPointerCapture(e.pointerId);
+    setPressed(true);
+  });
+  button.addEventListener("pointerup", (e) => {
+    e.preventDefault();
+    setPressed(false);
+  });
+  button.addEventListener("pointercancel", () => setPressed(false));
+  button.addEventListener("lostpointercapture", () => setPressed(false));
+});
+
+document.querySelector("[data-action='start']")?.addEventListener("click", () => {
+  if (GAME.state === "title" || GAME.state === "result") {
+    startGame();
+  } else if (GAME.state === "true_ending" && GAME.trueEndPhase >= 6) {
+    GAME.state = "title";
+  }
 });
 
 loop();

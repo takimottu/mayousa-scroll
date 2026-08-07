@@ -105,6 +105,10 @@
 
   async function submitScore() {
     if (!latestResult) return;
+    if (latestResult.testMode) {
+      setMessage("テストモードの結果はランキング登録できません。");
+      return;
+    }
     if (!latestResult.cleared) {
       setMessage("クリア時のみランキング登録できます。");
       return;
@@ -140,10 +144,14 @@
   function shareScore() {
     if (!latestResult) return;
     const url = new URL("https://twitter.com/intent/tweet");
-    const text = latestResult.cleared
-      ? `まようさスクロールゲームをクリア！ SCORE ${latestResult.score} / ${latestResult.lives}羽到着`
-      : `まようさスクロールゲームに挑戦！ SCORE ${latestResult.score}`;
-    url.searchParams.set("text", `${text}\n#mayousa_late_run`);
+    const lines = [
+      "#Late_Runner",
+      `あなたのSCORE【 ${latestResult.score} 】`,
+      `到達シーン【${latestResult.sceneName || "開演前"}】`,
+      `称号【${latestResult.title || "まようさ遅刻中"}】`,
+      "次回公演をお楽しみに！",
+    ];
+    url.searchParams.set("text", lines.join("\n"));
     url.searchParams.set("url", location.href.split("#")[0]);
     window.open(url.toString(), "_blank", "noopener,noreferrer");
   }
@@ -195,10 +203,14 @@
     latestResult = result;
     els.actions.hidden = false;
     els.latestScore.textContent = String(result.score);
-    els.submit.disabled = !result.cleared;
+    els.submit.disabled = !result.cleared || !!result.testMode;
     const savedName = localStorage.getItem("mayousaPlayerName");
     if (savedName && !els.playerName.value) els.playerName.value = savedName;
-    setMessage(result.cleared ? "名前を入れてランキング登録できます。" : "クリア時のみランキング登録できます。");
+    if (result.testMode) {
+      setMessage("テストモードの結果はランキング登録できません。");
+    } else {
+      setMessage(result.cleared ? "名前を入れてランキング登録できます。" : "クリア時のみランキング登録できます。");
+    }
   }
 
   els.refresh.addEventListener("click", renderRanking);

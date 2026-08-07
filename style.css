@@ -54,6 +54,71 @@ canvas {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.touch-controls {
+  width: min(360px, calc(100vw - 48px));
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 12px;
+  align-items: center;
+  touch-action: none;
+  user-select: none;
+}
+
+.touch-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 54px);
+  grid-template-rows: repeat(2, 48px);
+  justify-content: end;
+  gap: 8px;
+}
+
+.touch-button {
+  min-width: 54px;
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  color: #f7f1df;
+  background: rgba(255, 255, 255, 0.09);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-button:active,
+.touch-button.is-pressed {
+  color: #15120c;
+  background: #ffdf83;
+}
+
+.touch-start {
+  width: 112px;
+  height: 104px;
+  font-size: 15px;
+}
+
+.touch-button[data-key="up"] {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.touch-button[data-key="left"] {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.touch-button[data-key="down"] {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.touch-button[data-key="right"] {
+  grid-column: 3;
+  grid-row: 2;
+}
+
 .ranking-panel {
   width: 100%;
   min-height: 640px;
@@ -236,5 +301,9 @@ canvas {
   .ranking-panel {
     min-height: 0;
     max-width: 360px;
+  }
+
+  .touch-controls {
+    width: min(360px, calc(100vw - 28px));
   }
 }
