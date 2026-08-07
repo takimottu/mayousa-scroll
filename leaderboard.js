@@ -189,9 +189,9 @@
     const selected = mayousaShareData[els.shareMayousa?.value] || mayousaShareData.hat;
     const lines = [
       "#Late_Runner",
+      "#ミュージカルwishクレールドルナ",
       `あなたのSCORE【 ${latestResult.score} 】`,
       `到達シーン【${latestResult.sceneName || "開演前"}】`,
-      `称号【${latestResult.title || "まようさ遅刻中"}】`,
       `推しまようさ【${selected.name}】`,
       "次回公演をお楽しみに！",
     ];
@@ -231,19 +231,35 @@
     c.strokeRect(56, 56, 1088, 563);
 
     c.fillStyle = "#ffdf83";
-    c.font = "700 46px sans-serif";
-    c.fillText("#Late_Runner", 92, 128);
+    c.font = "800 48px sans-serif";
+    c.fillText("#Late_Runner", 92, 122);
+    c.font = "700 30px sans-serif";
+    c.fillText("#ミュージカルwishクレールドルナ", 92, 166);
     c.fillStyle = "#ffffff";
     c.font = "800 84px sans-serif";
-    c.fillText(isTrueEnd ? "True End" : "Result", 92, 236);
-    c.font = "800 64px sans-serif";
-    c.fillText(`SCORE ${latestResult.score}`, 92, 326);
-    c.font = "700 34px sans-serif";
+    c.fillText(isTrueEnd ? "True End" : "Result", 92, 255);
+    c.font = "900 72px sans-serif";
+    c.fillText(`SCORE ${latestResult.score}`, 92, 345);
+    c.font = "700 30px sans-serif";
     c.fillStyle = "#f7f1df";
-    c.fillText(`到達シーン: ${latestResult.sceneName || "開演前"}`, 92, 390);
-    c.fillText(`称号: ${latestResult.title || "まようさ遅刻中"}`, 92, 438);
-    c.fillText(`推しまようさ: ${selected.name}`, 92, 486);
-    c.fillText("次回公演をお楽しみに！", 92, 534);
+    c.fillText(`到達シーン: ${latestResult.sceneName || "開演前"}`, 92, 395);
+    c.fillText(`称号: ${latestResult.title || "まようさ遅刻中"}`, 92, 435);
+    c.fillText(`推しまようさ: ${selected.name}`, 92, 475);
+
+    c.fillStyle = "rgba(255, 223, 131, 0.16)";
+    c.fillRect(84, 505, 612, 82);
+    c.strokeStyle = "rgba(255, 223, 131, 0.42)";
+    c.lineWidth = 2;
+    c.strokeRect(84, 505, 612, 82);
+    c.fillStyle = "#ffdf83";
+    c.font = "800 28px sans-serif";
+    c.fillText("次回公演日程", 110, 538);
+    c.fillStyle = "#ffffff";
+    c.font = "800 34px sans-serif";
+    c.fillText("8/22・23　9/12・19", 110, 576);
+    c.fillStyle = "#f7f1df";
+    c.font = "700 24px sans-serif";
+    c.fillText("会場: cluster　開場21:45 / 開演22:00〜", 92, 616);
 
     const size = 360;
     const x = 760;
@@ -254,9 +270,9 @@
     c.fill();
     c.drawImage(image, x, y, size, size);
 
-    c.fillStyle = "rgba(255, 255, 255, 0.76)";
-    c.font = "600 24px sans-serif";
-    c.fillText(location.hostname, 92, 584);
+    c.fillStyle = "rgba(255, 255, 255, 0.66)";
+    c.font = "600 20px sans-serif";
+    c.fillText(location.hostname, 92, 646);
 
     return card.toDataURL("image/png");
   }
