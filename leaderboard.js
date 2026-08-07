@@ -96,32 +96,56 @@
     }
   }
 
-  function writeLocalScore(record) {
-    const rows = [record, ...readLocalScores()]
+  function dedupeBestByName(rows, limit = 30) {
+    const best = new Map();
+    rows.forEach((row) => {
+      const key = normalizeName(row.player_name).toLowerCase();
+      const current = best.get(key);
+      const rowTime = new Date(row.completed_at).getTime() || 0;
+      const currentTime = current ? new Date(current.completed_at).getTime() || 0 : 0;
+      if (
+        !current ||
+        row.score > current.score ||
+        (row.score === current.score && rowTime < currentTime)
+      ) {
+        best.set(key, row);
+      }
+    });
+    return Array.from(best.values())
       .sort((a, b) => b.score - a.score || new Date(a.completed_at) - new Date(b.completed_at))
-      .slice(0, 20);
+      .slice(0, limit);
+  }
+
+  function writeLocalScore(record) {
+    const rows = dedupeBestByName([record, ...readLocalScores()], 30);
     localStorage.setItem(localKey, JSON.stringify(rows));
     return rows;
   }
 
   async function fetchScores() {
     if (!isOnline) {
-      return readLocalScores()
-        .sort((a, b) => b.score - a.score || new Date(a.completed_at) - new Date(b.completed_at))
-        .slice(0, 10);
+      return dedupeBestByName(readLocalScores(), 30);
     }
-    const query = `${encodeURIComponent(table)}?select=player_name,score,completed_at,lives,end_id,title,scene_name,favorite_mayousa&order=score.desc,completed_at.asc&limit=10`;
-    return requestSupabase(query, { method: "GET", headers: { Prefer: "" } });
+    const query = `${encodeURIComponent(table)}?select=player_name,score,completed_at,lives,end_id,title,scene_name,favorite_mayousa&order=score.desc,completed_at.asc&limit=200`;
+    const rows = await requestSupabase(query, { method: "GET", headers: { Prefer: "" } });
+    return dedupeBestByName(rows, 30);
+  }
+
+  async function fetchBestScoreForName(playerName) {
+    const name = normalizeName(playerName);
+    if (!isOnline) {
+      const rows = readLocalScores().filter((row) => normalizeName(row.player_name) === name);
+      return rows.reduce((max, row) => Math.max(max, Number(row.score) || 0), -1);
+    }
+    const query = `${encodeURIComponent(table)}?select=score&player_name=eq.${encodeURIComponent(name)}&order=score.desc&limit=1`;
+    const rows = await requestSupabase(query, { method: "GET", headers: { Prefer: "" } });
+    return rows && rows[0] ? Number(rows[0].score) || 0 : -1;
   }
 
   async function submitScore() {
     if (!latestResult) return;
     if (latestResult.testMode) {
       setMessage("テストモードの結果はランキング登録できません。");
-      return;
-    }
-    if (!latestResult.cleared) {
-      setMessage("クリア時のみランキング登録できます。");
       return;
     }
     if (submittedRunId === latestResult.runId) {
@@ -132,6 +156,11 @@
     els.submit.disabled = true;
     setMessage("登録中...");
     try {
+      const bestScore = await fetchBestScoreForName(record.player_name);
+      if (bestScore >= record.score) {
+        setMessage(`同じ名前の最高SCORE ${bestScore} を超えた時だけ登録できます。`);
+        return;
+      }
       if (isOnline) {
         await requestSupabase(encodeURIComponent(table), {
           method: "POST",
@@ -293,7 +322,7 @@
       icon.src = favorite.src;
       icon.alt = favorite.name;
       name.textContent = row.player_name || "まようさ";
-      meta.textContent = `${formatDate(row.completed_at)} ${row.lives || 0}羽 / ${favorite.name}`;
+      meta.textContent = `${formatDate(row.completed_at)} ${row.lives || 0}羽`;
       score.textContent = String(row.score || 0);
 
       body.append(name, meta);
@@ -323,7 +352,7 @@
     latestResult = result;
     els.actions.hidden = false;
     els.latestScore.textContent = String(result.score);
-    els.submit.disabled = !result.cleared || !!result.testMode || !!result.isTrueEnd;
+    els.submit.disabled = !!result.testMode || !!result.isTrueEnd;
     els.mayousaPicker.hidden = false;
     els.shareImage.hidden = !result.isTrueEnd;
     const savedName = localStorage.getItem("mayousaPlayerName");
@@ -333,7 +362,7 @@
     } else if (result.isTrueEnd) {
       setMessage("好きなまようさを選んでTrue Endをポストできます。");
     } else {
-      setMessage(result.cleared ? "名前を入れてランキング登録できます。" : "クリア時のみランキング登録できます。");
+      setMessage("名前を入れて到達SCOREをランキング登録できます。");
     }
   }
 
