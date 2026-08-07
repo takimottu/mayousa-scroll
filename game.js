@@ -24,8 +24,7 @@ const END_DIALOG_LINE_MS = 2600;
 const END_CLEAR_ACCEL = 0.25;
 const END_CLEAR_MAX_MS = 2000;
 const RESULT_FADE_MS = 800;
-const END_IDS = ["hat", "sunglass", "flower", "apple", "ribbon", "gameover"];
-const ENDS_STORAGE_KEY = "mayousaEndsCollected";
+const TRUE_END_UNLOCK_STORAGE_KEY = "mayousaTrueEndUnlocked";
 const OFFICIAL_SITE_URL = "https://sites.google.com/view/matomayo";
 const PERFORMANCE_INFO_URL = "https://sites.google.com/view/wishcdl";
 const TRUE_END_PHASE2_LINE_MS = 4000;
@@ -155,47 +154,28 @@ function getEndDialogLinesForLives(lives) {
   return END_DIALOG_LINES_BY_LIVES[lives] || END_DIALOG_LINES_BY_LIVES[1];
 }
 
-function loadEndsCollected() {
+function isTrueEndUnlocked() {
   try {
-    const raw = localStorage.getItem(ENDS_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
+    return localStorage.getItem(TRUE_END_UNLOCK_STORAGE_KEY) === "true";
   } catch {
-    return {};
+    return false;
   }
 }
 
-function saveEndsCollected(data) {
+function unlockTrueEnd() {
   try {
-    localStorage.setItem(ENDS_STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(TRUE_END_UNLOCK_STORAGE_KEY, "true");
   } catch {
     // ignore storage failures
   }
 }
 
-function setAllEndsCollected() {
-  const data = {};
-  END_IDS.forEach((id) => {
-    data[id] = true;
-  });
-  saveEndsCollected(data);
-}
-
-function resetEndsCollected() {
+function resetTrueEndUnlock() {
   try {
-    localStorage.removeItem(ENDS_STORAGE_KEY);
+    localStorage.removeItem(TRUE_END_UNLOCK_STORAGE_KEY);
   } catch {
     // ignore storage failures
   }
-}
-
-function recordEndCollection(endId) {
-  if (!endId) return;
-  const data = loadEndsCollected();
-  if (data[endId]) return;
-  data[endId] = true;
-  saveEndsCollected(data);
 }
 
 function getEndIdForLives(lives) {
@@ -213,10 +193,6 @@ function getEndIdForLives(lives) {
     default:
       return null;
   }
-}
-
-function countCollectedEnds(data) {
-  return END_IDS.reduce((count, id) => count + (data[id] ? 1 : 0), 0);
 }
 
 function openExternal(url) {
@@ -289,7 +265,6 @@ const GAME = {
   lastEndDialogLineIndex: -1,
   endDialogLineChanged: false,
   endIdThisRun: null,
-  endRecorded: false,
   trueEndPhase: 0,
   trueEndPhaseStart: 0,
   clearStartTime: 0,
@@ -833,7 +808,6 @@ function resetGame() {
   GAME.lastMessage = "";
   GAME.currentMayousaIndex = 0;
   GAME.endIdThisRun = null;
-  GAME.endRecorded = false;
   GAME.resultStartTime = 0;
   GAME.resultRunId = "";
   GAME.resultCompletedAt = "";
@@ -1326,7 +1300,6 @@ function update() {
       GAME.lastEndDialogLineIndex = -1;
       GAME.endDialogLineChanged = false;
       GAME.endIdThisRun = getEndIdForLives(GAME.lives);
-      GAME.endRecorded = false;
       GAME.state = "end_dialog";
     }
     return;
@@ -1357,10 +1330,6 @@ function update() {
       GAME.lastEndDialogLineIndex = currentIndex;
     }
     if (elapsed >= END_DIALOG_LINE_MS * lineCount) {
-      if (!GAME.testMode && !GAME.endRecorded) {
-        recordEndCollection(GAME.endIdThisRun);
-        GAME.endRecorded = true;
-      }
       GAME.state = "result_fade";
       GAME.resultFadeStart = GAME.time;
       GAME.resultStartTime = GAME.time;
@@ -1442,10 +1411,6 @@ function update() {
         GAME.hitFlashUntil = GAME.time + GAMEOVER_FLASH_DURATION;
         GAME.hitFlashDuration = GAMEOVER_FLASH_DURATION;
         GAME.endIdThisRun = "gameover";
-        if (!GAME.testMode && !GAME.endRecorded && GAME.distance < GAME.goalDistance) {
-          recordEndCollection(GAME.endIdThisRun);
-          GAME.endRecorded = true;
-        }
         GAME.state = "result";
         GAME.resultStartTime = GAME.time;
       }
@@ -1455,8 +1420,8 @@ function update() {
 
   if (GAME.distance >= MAX_DISTANCE) {
     GAME.distance = MAX_DISTANCE;
+    unlockTrueEnd();
     GAME.endIdThisRun = getEndIdForLives(GAME.lives);
-    GAME.endRecorded = false;
     GAME.clearStartTime = GAME.time;
     GAME.state = "end_clearing";
   }
@@ -2805,12 +2770,10 @@ function drawTitle() {
   const linkRightMargin = 18;
   const linkBottomMargin = 18;
 
-  const endData = loadEndsCollected();
-  const collectedCount = countCollectedEnds(endData);
   const secret = titleUiElements.find((el) => el.id === "secret");
   if (secret) {
-    secret.visible = collectedCount === 6;
-    secret.enabled = collectedCount === 6;
+    secret.visible = isTrueEndUnlocked();
+    secret.enabled = isTrueEndUnlocked();
   }
 
   const drawTitleLink = (id, text, x, y) => {
@@ -3135,9 +3098,7 @@ function drawResult(overrides = null) {
   ctx.fillText("#mayousa_late_run", centerX, hashY);
   ctx.strokeText(dateText, centerX, dateY);
   ctx.fillText(dateText, centerX, dateY);
-  const endData = loadEndsCollected();
-  const collectedCount = countCollectedEnds(endData);
-  const endText = `エンド回収: ${collectedCount}/6`;
+  const endText = isTrueEndUnlocked() ? "True End 解放済み" : "";
   ctx.strokeText(endText, centerX, endCountY);
   ctx.fillText(endText, centerX, endCountY);
   ctx.restore();
@@ -3310,7 +3271,7 @@ function handleHiddenTestKey() {
   GAME.testKeyLastAt = now;
   if (GAME.testKeyCount >= 5) {
     GAME.testMode = !GAME.testMode;
-    if (GAME.testMode) setAllEndsCollected();
+    if (GAME.testMode) unlockTrueEnd();
     GAME.testKeyCount = 0;
     console.info(`Mayousa test mode ${GAME.testMode ? "enabled" : "disabled"}`);
   }
