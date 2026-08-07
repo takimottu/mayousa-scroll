@@ -246,20 +246,45 @@
     c.fillText(`称号: ${latestResult.title || "まようさ遅刻中"}`, 92, 435);
     c.fillText(`推しまようさ: ${selected.name}`, 92, 475);
 
-    c.fillStyle = "rgba(255, 223, 131, 0.16)";
-    c.fillRect(84, 505, 612, 82);
-    c.strokeStyle = "rgba(255, 223, 131, 0.42)";
-    c.lineWidth = 2;
-    c.strokeRect(84, 505, 612, 82);
+    const infoX = 84;
+    const infoY = 502;
+    const infoW = 628;
+    const infoH = 112;
+    c.fillStyle = "rgba(255, 223, 131, 0.14)";
+    c.fillRect(infoX, infoY, infoW, infoH);
+    c.strokeStyle = "rgba(255, 223, 131, 0.48)";
+    c.lineWidth = 3;
+    c.strokeRect(infoX, infoY, infoW, infoH);
     c.fillStyle = "#ffdf83";
-    c.font = "800 28px sans-serif";
-    c.fillText("次回公演日程", 110, 538);
-    c.fillStyle = "#ffffff";
-    c.font = "800 34px sans-serif";
-    c.fillText("8/22・23　9/12・19", 110, 576);
+    c.font = "900 26px sans-serif";
+    c.fillText("NEXT STAGE", infoX + 24, infoY + 34);
     c.fillStyle = "#f7f1df";
-    c.font = "700 24px sans-serif";
-    c.fillText("会場: cluster　開場21:45 / 開演22:00〜", 92, 616);
+    c.font = "700 21px sans-serif";
+    c.fillText("次回公演日程", infoX + 210, infoY + 34);
+
+    const drawDateCell = (x, y, main, sub) => {
+      c.fillStyle = "rgba(255, 255, 255, 0.10)";
+      c.fillRect(x, y, 158, 42);
+      c.strokeStyle = "rgba(255, 255, 255, 0.22)";
+      c.lineWidth = 2;
+      c.strokeRect(x, y, 158, 42);
+      c.fillStyle = "#ffffff";
+      c.font = "900 27px sans-serif";
+      c.fillText(main, x + 14, y + 30);
+      c.fillStyle = "#ffdf83";
+      c.font = "800 18px sans-serif";
+      c.fillText(sub, x + 106, y + 29);
+    };
+    drawDateCell(infoX + 24, infoY + 47, "8/22", "23");
+    drawDateCell(infoX + 194, infoY + 47, "9/12", "19");
+
+    c.fillStyle = "#f7f1df";
+    c.font = "800 22px sans-serif";
+    c.fillText("会場: cluster", infoX + 382, infoY + 58);
+    c.fillText("開場 21:45", infoX + 382, infoY + 82);
+    c.fillStyle = "#ffffff";
+    c.font = "900 25px sans-serif";
+    c.fillText("開演 22:00〜", infoX + 382, infoY + 108);
 
     const size = 360;
     const x = 760;
