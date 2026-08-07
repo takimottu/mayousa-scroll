@@ -3278,7 +3278,11 @@ function getTitleUiHit(x, y) {
 function handleTitlePointer(clientX, clientY) {
   const { x, y } = getCanvasPoint(clientX, clientY);
   const hit = getTitleUiHit(x, y);
-  if (hit) hit.onClick();
+  if (hit) {
+    hit.onClick();
+  } else {
+    startGame();
+  }
 }
 
 function getCanvasPoint(clientX, clientY) {
