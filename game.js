@@ -472,6 +472,7 @@ const OBSTACLE_SEPARATION = 18;
 const OBSTACLE_SPAWN_TRIES = 10;
 const PLAYER_HITBOX_SCALE = 0.3;
 const PLAYER_DRAW_SIZE = 48;
+const TOUCH_TARGET_Y_OFFSET = -36;
 const OBSTACLE_HIT_SCALE = 1.0;
 const BULLET_MAX = 160;
 const BULLET_SPAWN_INTERVAL = 9;
@@ -3301,7 +3302,7 @@ function setPointerTarget(clientX, clientY) {
   const point = getCanvasPoint(clientX, clientY);
   GAME.pointerActive = true;
   GAME.pointerTargetX = point.x;
-  GAME.pointerTargetY = point.y;
+  GAME.pointerTargetY = point.y + TOUCH_TARGET_Y_OFFSET;
 }
 
 function handleHiddenTestKey() {
@@ -3387,15 +3388,14 @@ canvas.addEventListener("pointerdown", (e) => {
   canvas.focus();
   if (GAME.state !== "play") return;
   e.preventDefault();
-  canvas.setPointerCapture(e.pointerId);
   clearMovementKeys();
+  setPointerTarget(e.clientX, e.clientY);
 });
 
 canvas.addEventListener("pointerup", (e) => {
   canvas.focus();
   if (GAME.state === "play") {
     e.preventDefault();
-    setPointerTarget(e.clientX, e.clientY);
     return;
   }
   if (GAME.state === "title") {
@@ -3411,10 +3411,6 @@ canvas.addEventListener("pointerup", (e) => {
 });
 
 canvas.addEventListener("pointercancel", () => {
-  GAME.pointerActive = false;
-});
-
-canvas.addEventListener("lostpointercapture", () => {
   GAME.pointerActive = false;
 });
 
