@@ -24,6 +24,11 @@ const END_DIALOG_LINE_MS = 2600;
 const END_CLEAR_ACCEL = 0.25;
 const END_CLEAR_MAX_MS = 2000;
 const RESULT_FADE_MS = 800;
+const RESULT_SCORE_DELAY = 800;
+const RESULT_SCORE_DURATION = 1400;
+const RESULT_BONUS_STEP_INTERVAL = 320;
+const RESULT_BONUS_SETTLE = 400;
+const RESULT_TAP_ENABLE_DELAY = 1000;
 const TRUE_END_UNLOCK_STORAGE_KEY = "mayousaTrueEndUnlocked";
 const OFFICIAL_SITE_URL = "https://sites.google.com/view/matomayo";
 const PERFORMANCE_INFO_URL = "https://sites.google.com/view/wishcdl";
@@ -1112,8 +1117,8 @@ function updatePlayer() {
     GAME.player.x += keyboardDx * GAME.player.speed;
     GAME.player.y += keyboardDy * GAME.player.speed;
   } else if (GAME.pointerActive) {
-    GAME.player.x += GAME.pointerDx * GAME.player.speed;
-    GAME.player.y += GAME.pointerDy * GAME.player.speed;
+    GAME.player.x += GAME.pointerDx * GAME.player.speed * (2 / 3);
+    GAME.player.y += GAME.pointerDy * GAME.player.speed * (2 / 3);
   }
   const { left, right } = getPlayAreaBounds();
   const minX = left;
@@ -2929,10 +2934,10 @@ function drawResult(overrides = null) {
   const finalScore =
     scoreOverride != null ? scoreOverride : Math.min(MAX_SCORE, baseScore + bonus);
   const elapsed = Math.max(0, GAME.time - (GAME.resultStartTime || GAME.time));
-  const scoreDelay = 800;
-  const scoreDuration = 1400;
-  const bonusStepInterval = 320;
-  const bonusSettle = 400;
+  const scoreDelay = RESULT_SCORE_DELAY;
+  const scoreDuration = RESULT_SCORE_DURATION;
+  const bonusStepInterval = RESULT_BONUS_STEP_INTERVAL;
+  const bonusSettle = RESULT_BONUS_SETTLE;
   const retryPulsePeriod = 1000;
   const easeOut = (t) => 1 - (1 - t) * (1 - t);
   let displayBonus = 0;
@@ -2980,8 +2985,11 @@ function drawResult(overrides = null) {
       ctx.lineWidth = 4;
       ctx.fillStyle = "#ffffff";
       ctx.globalAlpha = pulse;
-      ctx.strokeText("Rでリトライ / Tでタイトル", GAME.width / 2, GAME.height - 24);
-      ctx.fillText("Rでリトライ / Tでタイトル", GAME.width / 2, GAME.height - 24);
+      const resultHelpText = canTapResultToTitle()
+        ? "タップでタイトル / Rでリトライ"
+        : "Rでリトライ / Tでタイトル";
+      ctx.strokeText(resultHelpText, GAME.width / 2, GAME.height - 24);
+      ctx.fillText(resultHelpText, GAME.width / 2, GAME.height - 24);
       ctx.globalAlpha = 1;
     }
   }
@@ -3305,6 +3313,17 @@ function setPointerDirection(clientX, clientY) {
   GAME.pointerDy = dy / distance;
 }
 
+function canTapResultToTitle() {
+  if (GAME.state !== "result") return false;
+  const elapsed = Math.max(0, GAME.time - (GAME.resultStartTime || GAME.time));
+  const cleared = GAME.distance >= GAME.goalDistance;
+  const bonus = cleared ? GAME.lives * LIFE_BONUS : 0;
+  const bonusHitCount = bonus > 0 ? Math.min(6, Math.ceil(bonus / 400)) : 0;
+  const bonusDuration =
+    bonusHitCount === 0 ? 0 : bonusHitCount * RESULT_BONUS_STEP_INTERVAL + RESULT_BONUS_SETTLE;
+  return elapsed >= RESULT_SCORE_DELAY + RESULT_SCORE_DURATION + bonusDuration + RESULT_TAP_ENABLE_DELAY;
+}
+
 function handleCanvasTap(clientX, clientY) {
   canvas.focus();
   if (GAME.state === "play") {
@@ -3316,7 +3335,7 @@ function handleCanvasTap(clientX, clientY) {
     handleTitlePointer(clientX, clientY);
     return true;
   }
-  if (GAME.state === "result" || GAME.state === "result_fade") {
+  if (GAME.state === "result" && canTapResultToTitle()) {
     backToTitle();
     return true;
   }
