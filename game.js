@@ -493,6 +493,7 @@ const OBSTACLE_SAFE_GAP = Math.floor(GAME.player.w * 2.5);
 const OBSTACLE_SEPARATION = 18;
 const OBSTACLE_SPAWN_TRIES = 10;
 const PLAYER_HITBOX_SCALE = 0.3;
+const PLAYER_DRAW_SIZE = 48;
 const OBSTACLE_HIT_SCALE = 1.0;
 const BULLET_MAX = 160;
 const BULLET_SPAWN_INTERVAL = 9;
@@ -2313,18 +2314,24 @@ function drawPlayer() {
   if (isInvincible && Math.floor(GAME.time / 120) % 2 === 0) return;
   const currentImg = playerImages[GAME.currentMayousaIndex];
   if (currentImg && isImageReady(currentImg)) {
+    const drawSize = Math.max(GAME.player.w, PLAYER_DRAW_SIZE);
     const scale = Math.min(
-      GAME.player.w / currentImg.naturalWidth,
-      GAME.player.h / currentImg.naturalHeight
+      drawSize / currentImg.naturalWidth,
+      drawSize / currentImg.naturalHeight
     );
     const drawW = currentImg.naturalWidth * scale;
     const drawH = currentImg.naturalHeight * scale;
-    const x = GAME.player.x + (GAME.player.w - drawW) / 2;
-    const y = GAME.player.y + (GAME.player.h - drawH) / 2;
+    const x = GAME.player.x + GAME.player.w / 2 - drawW / 2;
+    const y = GAME.player.y + GAME.player.h / 2 - drawH / 2;
     ctx.drawImage(currentImg, x, y, drawW, drawH);
   } else {
     ctx.fillStyle = COLORS.player;
-    ctx.fillRect(GAME.player.x, GAME.player.y, GAME.player.w, GAME.player.h);
+    ctx.fillRect(
+      GAME.player.x + GAME.player.w / 2 - PLAYER_DRAW_SIZE / 2,
+      GAME.player.y + GAME.player.h / 2 - PLAYER_DRAW_SIZE / 2,
+      PLAYER_DRAW_SIZE,
+      PLAYER_DRAW_SIZE
+    );
   }
 }
 
@@ -2440,10 +2447,15 @@ function drawHUD() {
   ctx.fillText(`距離: ${Math.floor(GAME.distance)} / ${GAME.goalDistance}`, 16, 28);
 
   const maxLives = MAYOUSA_PARTY.length;
-  const lifeSize = 33;
-  const lifeGap = 6;
-  const lifeY = 24;
-  let startX = GAME.width - 16 - (maxLives - 1) * (lifeSize + lifeGap);
+  const lifeSize = 42;
+  const lifeGap = 2;
+  const lifeY = 30;
+  const lifeRightMargin = 12;
+  let startX =
+    GAME.width -
+    lifeRightMargin -
+    lifeSize / 2 -
+    (maxLives - 1) * (lifeSize + lifeGap);
   if (maxLives <= 0) return;
   const lostCount = maxLives - GAME.lives;
   for (let i = 0; i < maxLives; i += 1) {
