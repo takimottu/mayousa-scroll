@@ -255,8 +255,8 @@ const GAME = {
   stage4RecoverUntil: 0,
   stage4NoConvergeUntil: 0,
   pointerActive: false,
-  pointerTargetX: 0,
-  pointerTargetY: 0,
+  pointerDx: 0,
+  pointerDy: 0,
   enemy: { x: 0, y: 0, w: 34, h: 34, bobPhase: 0 },
   startDelayMs: START_DELAY_FIRST,
   startAt: 0,
@@ -472,7 +472,6 @@ const OBSTACLE_SEPARATION = 18;
 const OBSTACLE_SPAWN_TRIES = 10;
 const PLAYER_HITBOX_SCALE = 0.3;
 const PLAYER_DRAW_SIZE = 48;
-const TOUCH_TARGET_Y_OFFSET = -36;
 const OBSTACLE_HIT_SCALE = 1.0;
 const BULLET_MAX = 160;
 const BULLET_SPAWN_INTERVAL = 9;
@@ -830,8 +829,8 @@ function resetGame() {
   GAME.stage4RecoverUntil = 0;
   GAME.stage4NoConvergeUntil = 0;
   GAME.pointerActive = false;
-  GAME.pointerTargetX = 0;
-  GAME.pointerTargetY = 0;
+  GAME.pointerDx = 0;
+  GAME.pointerDy = 0;
   GAME.enemy.x = EMITTER_X();
   GAME.enemy.y = EMITTER_Y;
   GAME.enemy.bobPhase = 0;
@@ -1113,18 +1112,8 @@ function updatePlayer() {
     GAME.player.x += keyboardDx * GAME.player.speed;
     GAME.player.y += keyboardDy * GAME.player.speed;
   } else if (GAME.pointerActive) {
-    const targetX = GAME.pointerTargetX - GAME.player.w / 2;
-    const targetY = GAME.pointerTargetY - GAME.player.h / 2;
-    const dx = targetX - GAME.player.x;
-    const dy = targetY - GAME.player.y;
-    const distance = Math.hypot(dx, dy);
-    const step = Math.min(distance, GAME.player.speed * 1.35);
-    if (distance > 1) {
-      GAME.player.x += (dx / distance) * step;
-      GAME.player.y += (dy / distance) * step;
-    } else {
-      GAME.pointerActive = false;
-    }
+    GAME.player.x += GAME.pointerDx * GAME.player.speed;
+    GAME.player.y += GAME.pointerDy * GAME.player.speed;
   }
   const { left, right } = getPlayAreaBounds();
   const minX = left;
@@ -3298,18 +3287,29 @@ function getCanvasPoint(clientX, clientY) {
   };
 }
 
-function setPointerTarget(clientX, clientY) {
+function setPointerDirection(clientX, clientY) {
   const point = getCanvasPoint(clientX, clientY);
+  const centerX = GAME.player.x + GAME.player.w / 2;
+  const centerY = GAME.player.y + GAME.player.h / 2;
+  const dx = point.x - centerX;
+  const dy = point.y - centerY;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 8) {
+    GAME.pointerActive = false;
+    GAME.pointerDx = 0;
+    GAME.pointerDy = 0;
+    return;
+  }
   GAME.pointerActive = true;
-  GAME.pointerTargetX = point.x;
-  GAME.pointerTargetY = point.y + TOUCH_TARGET_Y_OFFSET;
+  GAME.pointerDx = dx / distance;
+  GAME.pointerDy = dy / distance;
 }
 
 function handleCanvasTap(clientX, clientY) {
   canvas.focus();
   if (GAME.state === "play") {
     clearMovementKeys();
-    setPointerTarget(clientX, clientY);
+    setPointerDirection(clientX, clientY);
     return true;
   }
   if (GAME.state === "title") {
@@ -3409,7 +3409,11 @@ canvas.addEventListener("pointerdown", (e) => {
 });
 
 canvas.addEventListener("pointerup", (e) => {
-  if (GAME.state === "play") return;
+  if (GAME.state === "play") {
+    GAME.pointerActive = false;
+    e.preventDefault();
+    return;
+  }
   if (handleCanvasTap(e.clientX, e.clientY)) e.preventDefault();
 });
 
@@ -3447,7 +3451,22 @@ canvas.addEventListener(
   { passive: false }
 );
 
+canvas.addEventListener(
+  "touchend",
+  (e) => {
+    if (GAME.state === "play") {
+      GAME.pointerActive = false;
+      e.preventDefault();
+    }
+  },
+  { passive: false }
+);
+
 canvas.addEventListener("click", (e) => {
+  if (GAME.state === "play") {
+    e.preventDefault();
+    return;
+  }
   if (handleCanvasTap(e.clientX, e.clientY)) {
     e.preventDefault();
   }
