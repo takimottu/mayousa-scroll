@@ -187,16 +187,16 @@
     if (!latestResult) return;
     const url = new URL("https://twitter.com/intent/tweet");
     const selected = mayousaShareData[els.shareMayousa?.value] || mayousaShareData.hat;
+    const playUrl = "https://takimottu.github.io/mayousa-scroll/";
     const lines = [
       "#Late_Runner",
       "#ミュージカルwishクレールドルナ",
       `あなたのSCORE【 ${latestResult.score} 】`,
       `到達シーン【${latestResult.sceneName || "開演前"}】`,
       `推しまようさ【${selected.name}】`,
-      "次回公演をお楽しみに！",
+      `遊んでみる→ ${playUrl}`,
     ];
     url.searchParams.set("text", lines.join("\n"));
-    url.searchParams.set("url", location.href.split("#")[0]);
     window.open(url.toString(), "_blank", "noopener,noreferrer");
   }
 
