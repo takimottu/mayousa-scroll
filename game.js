@@ -3305,6 +3305,24 @@ function setPointerTarget(clientX, clientY) {
   GAME.pointerTargetY = point.y + TOUCH_TARGET_Y_OFFSET;
 }
 
+function handleCanvasTap(clientX, clientY) {
+  canvas.focus();
+  if (GAME.state === "play") {
+    clearMovementKeys();
+    setPointerTarget(clientX, clientY);
+    return true;
+  }
+  if (GAME.state === "title") {
+    handleTitlePointer(clientX, clientY);
+    return true;
+  }
+  if (GAME.state === "result" || GAME.state === "result_fade") {
+    backToTitle();
+    return true;
+  }
+  return false;
+}
+
 function handleHiddenTestKey() {
   const now = performance.now();
   GAME.testKeyCount = now - GAME.testKeyLastAt <= 1600 ? GAME.testKeyCount + 1 : 1;
@@ -3385,29 +3403,14 @@ window.addEventListener("keydown", (e) => {
 });
 
 canvas.addEventListener("pointerdown", (e) => {
-  canvas.focus();
-  if (GAME.state !== "play") return;
-  e.preventDefault();
-  clearMovementKeys();
-  setPointerTarget(e.clientX, e.clientY);
+  if (handleCanvasTap(e.clientX, e.clientY)) {
+    e.preventDefault();
+  }
 });
 
 canvas.addEventListener("pointerup", (e) => {
-  canvas.focus();
-  if (GAME.state === "play") {
-    e.preventDefault();
-    return;
-  }
-  if (GAME.state === "title") {
-    e.preventDefault();
-    e.stopPropagation();
-    handleTitlePointer(e.clientX, e.clientY);
-    return;
-  }
-  if (GAME.state === "result" || GAME.state === "result_fade") {
-    e.preventDefault();
-    backToTitle();
-  }
+  if (GAME.state === "play") return;
+  if (handleCanvasTap(e.clientX, e.clientY)) e.preventDefault();
 });
 
 canvas.addEventListener("pointercancel", () => {
@@ -3430,6 +3433,24 @@ canvas.addEventListener("pointermove", (e) => {
   const y = (e.clientY - rect.top) * scaleY;
   const hit = getTitleUiHit(x, y);
   canvas.style.cursor = hit ? "pointer" : "";
+});
+
+canvas.addEventListener(
+  "touchstart",
+  (e) => {
+    const touch = e.changedTouches && e.changedTouches[0];
+    if (!touch) return;
+    if (handleCanvasTap(touch.clientX, touch.clientY)) {
+      e.preventDefault();
+    }
+  },
+  { passive: false }
+);
+
+canvas.addEventListener("click", (e) => {
+  if (handleCanvasTap(e.clientX, e.clientY)) {
+    e.preventDefault();
+  }
 });
 
 window.addEventListener("keyup", (e) => {
