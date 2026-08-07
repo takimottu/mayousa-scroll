@@ -206,6 +206,17 @@ canvas {
   font: inherit;
 }
 
+.name-field select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.22);
+  font: inherit;
+}
+
 .action-row {
   gap: 8px;
 }
@@ -227,6 +238,10 @@ canvas {
 
 .secondary-button {
   min-width: 82px;
+}
+
+.wide-button {
+  width: 100%;
 }
 
 .primary-button:disabled,

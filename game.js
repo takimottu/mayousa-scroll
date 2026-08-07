@@ -220,6 +220,7 @@ function startTrueEnding() {
   GAME.trueEndPhase = 0;
   GAME.trueEndPhaseStart = GAME.time;
   GAME.trueEndResultStart = 0;
+  GAME.trueEndResultPublished = false;
   GAME.trueEndCreditStopAt = 0;
   GAME.trueEndCreditStopBaseY = 0;
   TRUE_END_PHASE_DURATIONS[5] = 1e9;
@@ -286,6 +287,7 @@ const GAME = {
   clearStartTime: 0,
   resultFadeStart: 0,
   trueEndResultStart: 0,
+  trueEndResultPublished: false,
   trueEndCreditStopAt: 0,
   trueEndCreditStopBaseY: 0,
   titleStartTime: performance.now(),
@@ -583,6 +585,7 @@ function getResultSummary(overrides = null) {
     overrides && typeof overrides.cleared === "boolean" ? overrides.cleared : null;
   const sceneOverride =
     overrides && typeof overrides.sceneName === "string" ? overrides.sceneName : null;
+  const isTrueEnd = !!(overrides && overrides.isTrueEnd);
   const cleared = clearedOverride != null ? clearedOverride : GAME.distance >= GAME.goalDistance;
   const baseScore = scoreOverride != null ? scoreOverride : Math.floor(GAME.distance);
   const bonus = scoreOverride != null ? 0 : cleared ? GAME.lives * LIFE_BONUS : 0;
@@ -603,15 +606,16 @@ function getResultSummary(overrides = null) {
     title,
     completedAt: GAME.resultCompletedAt || new Date().toISOString(),
     testMode: GAME.testMode,
+    isTrueEnd,
   };
 }
 
-function publishResultSummary() {
+function publishResultSummary(overrides = null) {
   GAME.resultRunId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   GAME.resultCompletedAt = new Date().toISOString();
   window.dispatchEvent(
     new CustomEvent("mayousa:result", {
-      detail: getResultSummary(),
+      detail: getResultSummary(overrides),
     })
   );
 }
@@ -2280,11 +2284,18 @@ function drawTrueEnding() {
       GAME.trueEndResultStart = GAME.time;
     }
     GAME.resultStartTime = GAME.trueEndResultStart;
-    drawResult({
+    const trueEndResult = {
       score: TRUE_END_RESULT_SCORE,
       cleared: true,
       sceneName: "True End",
       isTrueEnd: true,
+    };
+    if (!GAME.trueEndResultPublished) {
+      GAME.trueEndResultPublished = true;
+      publishResultSummary(trueEndResult);
+    }
+    drawResult({
+      ...trueEndResult,
     });
   }
 }

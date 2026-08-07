@@ -37,10 +37,21 @@
           <span>名前</span>
           <input id="playerName" type="text" maxlength="16" autocomplete="nickname" placeholder="まようさ" />
         </label>
+        <label id="mayousaPicker" class="name-field mayousa-picker" hidden>
+          <span>ポストするまようさ</span>
+          <select id="shareMayousa">
+            <option value="hat">ハットまようさ</option>
+            <option value="glasses">グラサンまようさ</option>
+            <option value="flower">おはなまようさ</option>
+            <option value="apple">りんごまようさ</option>
+            <option value="ribbon">りぼんまようさ</option>
+          </select>
+        </label>
         <div class="action-row">
           <button id="submitScore" class="primary-button" type="button">ランキング登録</button>
           <button id="shareScore" class="secondary-button" type="button">ポスト</button>
         </div>
+        <button id="shareImageScore" class="secondary-button wide-button" type="button" hidden>画像つき共有</button>
         <p id="resultMessage" class="panel-message"></p>
       </div>
       <ol id="rankingList" class="ranking-list"></ol>

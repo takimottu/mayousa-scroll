@@ -10,8 +10,11 @@
     actions: document.getElementById("resultActions"),
     latestScore: document.getElementById("latestScore"),
     playerName: document.getElementById("playerName"),
+    mayousaPicker: document.getElementById("mayousaPicker"),
+    shareMayousa: document.getElementById("shareMayousa"),
     submit: document.getElementById("submitScore"),
     share: document.getElementById("shareScore"),
+    shareImage: document.getElementById("shareImageScore"),
     message: document.getElementById("resultMessage"),
     list: document.getElementById("rankingList"),
     status: document.getElementById("rankingStatus"),
@@ -20,6 +23,13 @@
 
   let latestResult = null;
   let submittedRunId = "";
+  const mayousaShareData = {
+    hat: { name: "ハットまようさ", src: "assets/player/mayousa_hat.png" },
+    glasses: { name: "グラサンまようさ", src: "assets/player/mayousa_glasses.png" },
+    flower: { name: "おはなまようさ", src: "assets/player/mayousa_flower.png" },
+    apple: { name: "りんごまようさ", src: "assets/player/mayousa_apple.png" },
+    ribbon: { name: "りぼんまようさ", src: "assets/player/mayousa_ribbon.png" },
+  };
 
   function setStatus(text) {
     if (els.status) els.status.textContent = text;
@@ -144,16 +154,120 @@
   function shareScore() {
     if (!latestResult) return;
     const url = new URL("https://twitter.com/intent/tweet");
+    const selected = mayousaShareData[els.shareMayousa?.value] || mayousaShareData.hat;
     const lines = [
       "#Late_Runner",
       `あなたのSCORE【 ${latestResult.score} 】`,
       `到達シーン【${latestResult.sceneName || "開演前"}】`,
       `称号【${latestResult.title || "まようさ遅刻中"}】`,
+      ...(latestResult.isTrueEnd ? [`推しまようさ【${selected.name}】`] : []),
       "次回公演をお楽しみに！",
     ];
     url.searchParams.set("text", lines.join("\n"));
     url.searchParams.set("url", location.href.split("#")[0]);
     window.open(url.toString(), "_blank", "noopener,noreferrer");
+  }
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = src;
+    });
+  }
+
+  function canvasToBlob(canvas) {
+    return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  }
+
+  async function createTrueEndCardFile() {
+    const selected = mayousaShareData[els.shareMayousa?.value] || mayousaShareData.hat;
+    const image = await loadImage(selected.src);
+    const card = document.createElement("canvas");
+    card.width = 1200;
+    card.height = 675;
+    const c = card.getContext("2d");
+    const grad = c.createLinearGradient(0, 0, 1200, 675);
+    grad.addColorStop(0, "#101318");
+    grad.addColorStop(0.55, "#241d2a");
+    grad.addColorStop(1, "#3a2830");
+    c.fillStyle = grad;
+    c.fillRect(0, 0, 1200, 675);
+
+    c.fillStyle = "rgba(255, 223, 131, 0.12)";
+    c.fillRect(56, 56, 1088, 563);
+    c.strokeStyle = "rgba(255, 223, 131, 0.55)";
+    c.lineWidth = 4;
+    c.strokeRect(56, 56, 1088, 563);
+
+    c.fillStyle = "#ffdf83";
+    c.font = "700 46px sans-serif";
+    c.fillText("#Late_Runner", 92, 128);
+    c.fillStyle = "#ffffff";
+    c.font = "800 84px sans-serif";
+    c.fillText("True End", 92, 236);
+    c.font = "800 64px sans-serif";
+    c.fillText(`SCORE ${latestResult.score}`, 92, 326);
+    c.font = "700 34px sans-serif";
+    c.fillStyle = "#f7f1df";
+    c.fillText(`推しまようさ: ${selected.name}`, 92, 390);
+    c.fillText("次回公演をお楽しみに！", 92, 448);
+
+    const size = 360;
+    const x = 760;
+    const y = 205;
+    c.fillStyle = "rgba(255, 255, 255, 0.12)";
+    c.beginPath();
+    c.arc(x + size / 2, y + size / 2, 190, 0, Math.PI * 2);
+    c.fill();
+    c.drawImage(image, x, y, size, size);
+
+    c.fillStyle = "rgba(255, 255, 255, 0.76)";
+    c.font = "600 24px sans-serif";
+    c.fillText(location.hostname, 92, 570);
+
+    const blob = await canvasToBlob(card);
+    return new File([blob], "late-runner-true-end.png", { type: "image/png" });
+  }
+
+  async function shareImageScore() {
+    if (!latestResult) return;
+    if (!latestResult.isTrueEnd) {
+      shareScore();
+      return;
+    }
+    els.shareImage.disabled = true;
+    setMessage("画像を作成中...");
+    try {
+      const file = await createTrueEndCardFile();
+      const selected = mayousaShareData[els.shareMayousa?.value] || mayousaShareData.hat;
+      const text = [
+        "#Late_Runner",
+        `あなたのSCORE【 ${latestResult.score} 】`,
+        "到達シーン【True End】",
+        `推しまようさ【${selected.name}】`,
+        "次回公演をお楽しみに！",
+      ].join("\n");
+      if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+        await navigator.share({ files: [file], text, url: location.href.split("#")[0] });
+        setMessage("共有画面を開きました。");
+      } else {
+        const downloadUrl = URL.createObjectURL(file);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(downloadUrl);
+        setMessage("画像を保存しました。ポスト画面で添付してください。");
+        shareScore();
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage("画像つき共有に失敗しました。通常ポストを使ってください。");
+    } finally {
+      els.shareImage.disabled = false;
+    }
   }
 
   function renderRows(rows) {
@@ -203,11 +317,15 @@
     latestResult = result;
     els.actions.hidden = false;
     els.latestScore.textContent = String(result.score);
-    els.submit.disabled = !result.cleared || !!result.testMode;
+    els.submit.disabled = !result.cleared || !!result.testMode || !!result.isTrueEnd;
+    els.mayousaPicker.hidden = !result.isTrueEnd;
+    els.shareImage.hidden = !result.isTrueEnd;
     const savedName = localStorage.getItem("mayousaPlayerName");
     if (savedName && !els.playerName.value) els.playerName.value = savedName;
     if (result.testMode) {
       setMessage("テストモードの結果はランキング登録できません。");
+    } else if (result.isTrueEnd) {
+      setMessage("好きなまようさを選んでTrue Endをポストできます。");
     } else {
       setMessage(result.cleared ? "名前を入れてランキング登録できます。" : "クリア時のみランキング登録できます。");
     }
@@ -216,6 +334,7 @@
   els.refresh.addEventListener("click", renderRanking);
   els.submit.addEventListener("click", submitScore);
   els.share.addEventListener("click", shareScore);
+  els.shareImage.addEventListener("click", shareImageScore);
   window.addEventListener("mayousa:result", (event) => showResultActions(event.detail));
 
   renderRanking();
