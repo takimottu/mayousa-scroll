@@ -190,7 +190,7 @@
       `あなたのSCORE【 ${latestResult.score} 】`,
       `到達シーン【${latestResult.sceneName || "開演前"}】`,
       `称号【${latestResult.title || "まようさ遅刻中"}】`,
-      ...(latestResult.isTrueEnd ? [`推しまようさ【${selected.name}】`] : []),
+      `推しまようさ【${selected.name}】`,
       "次回公演をお楽しみに！",
     ];
     url.searchParams.set("text", lines.join("\n"));
@@ -211,9 +211,10 @@
     return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
   }
 
-  async function createTrueEndCardFile() {
+  async function createResultCardFile() {
     const selected = mayousaShareData[els.shareMayousa?.value] || mayousaShareData.hat;
     const image = await loadImage(selected.src);
+    const isTrueEnd = !!latestResult.isTrueEnd;
     const card = document.createElement("canvas");
     card.width = 1200;
     card.height = 675;
@@ -236,13 +237,15 @@
     c.fillText("#Late_Runner", 92, 128);
     c.fillStyle = "#ffffff";
     c.font = "800 84px sans-serif";
-    c.fillText("True End", 92, 236);
+    c.fillText(isTrueEnd ? "True End" : "Result", 92, 236);
     c.font = "800 64px sans-serif";
     c.fillText(`SCORE ${latestResult.score}`, 92, 326);
     c.font = "700 34px sans-serif";
     c.fillStyle = "#f7f1df";
-    c.fillText(`推しまようさ: ${selected.name}`, 92, 390);
-    c.fillText("次回公演をお楽しみに！", 92, 448);
+    c.fillText(`到達シーン: ${latestResult.sceneName || "開演前"}`, 92, 390);
+    c.fillText(`称号: ${latestResult.title || "まようさ遅刻中"}`, 92, 438);
+    c.fillText(`推しまようさ: ${selected.name}`, 92, 486);
+    c.fillText("次回公演をお楽しみに！", 92, 534);
 
     const size = 360;
     const x = 760;
@@ -255,27 +258,25 @@
 
     c.fillStyle = "rgba(255, 255, 255, 0.76)";
     c.font = "600 24px sans-serif";
-    c.fillText(location.hostname, 92, 570);
+    c.fillText(location.hostname, 92, 584);
 
     const blob = await canvasToBlob(card);
-    return new File([blob], "late-runner-true-end.png", { type: "image/png" });
+    const name = isTrueEnd ? "late-runner-true-end.png" : "late-runner-result.png";
+    return new File([blob], name, { type: "image/png" });
   }
 
   async function shareImageScore() {
     if (!latestResult) return;
-    if (!latestResult.isTrueEnd) {
-      shareScore();
-      return;
-    }
     els.shareImage.disabled = true;
     setMessage("画像を作成中...");
     try {
-      const file = await createTrueEndCardFile();
+      const file = await createResultCardFile();
       const selected = mayousaShareData[els.shareMayousa?.value] || mayousaShareData.hat;
       const text = [
         "#Late_Runner",
         `あなたのSCORE【 ${latestResult.score} 】`,
-        "到達シーン【True End】",
+        `到達シーン【${latestResult.sceneName || "開演前"}】`,
+        `称号【${latestResult.title || "まようさ遅刻中"}】`,
         `推しまようさ【${selected.name}】`,
         "次回公演をお楽しみに！",
       ].join("\n");
@@ -354,7 +355,7 @@
     els.latestScore.textContent = String(result.score);
     els.submit.disabled = !!result.testMode || !!result.isTrueEnd;
     els.mayousaPicker.hidden = false;
-    els.shareImage.hidden = !result.isTrueEnd;
+    els.shareImage.hidden = false;
     const savedName = localStorage.getItem("mayousaPlayerName");
     if (savedName && !els.playerName.value) els.playerName.value = savedName;
     if (result.testMode) {
@@ -362,7 +363,7 @@
     } else if (result.isTrueEnd) {
       setMessage("好きなまようさを選んでTrue Endをポストできます。");
     } else {
-      setMessage("名前を入れて到達SCOREをランキング登録できます。");
+      setMessage("名前と推しまようさを選んでランキング登録・画像共有できます。");
     }
   }
 
