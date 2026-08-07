@@ -410,11 +410,11 @@ resultMayousa.src = "assets/title/mayousa.png";
 const resultMayochan = new Image();
 resultMayochan.src = "assets/title/mayochan.png";
 const lifeIcons = [
-  "assets/ui/life_hat.png",
-  "assets/ui/life_glasses.png",
-  "assets/ui/life_flower.png",
-  "assets/ui/life_apple.png",
-  "assets/ui/life_ribbon.png",
+  "assets/ui/life_hat_small.png",
+  "assets/ui/life_glasses_small.png",
+  "assets/ui/life_flower_small.png",
+  "assets/ui/life_apple_small.png",
+  "assets/ui/life_ribbon_small.png",
 ].map((src) => {
   const img = new Image();
   img.src = src;
