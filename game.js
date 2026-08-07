@@ -282,6 +282,7 @@ const GAME = {
   trueEndResultPublished: false,
   trueEndCreditStopAt: 0,
   trueEndCreditStopBaseY: 0,
+  trueEndUnlockedThisRun: false,
   titleInputLockedUntil: 0,
   titleStartTime: performance.now(),
   prevState: "title",
@@ -821,6 +822,7 @@ function resetGame() {
   GAME.resultStartTime = 0;
   GAME.resultRunId = "";
   GAME.resultCompletedAt = "";
+  GAME.trueEndUnlockedThisRun = false;
   GAME.bulletPhase = 0;
   GAME.bulletSweepPhase = 0;
   GAME.patternIndex = 0;
@@ -1439,7 +1441,9 @@ function update() {
 
   if (GAME.distance >= MAX_DISTANCE) {
     GAME.distance = MAX_DISTANCE;
+    const wasTrueEndUnlocked = isTrueEndUnlocked();
     unlockTrueEnd();
+    GAME.trueEndUnlockedThisRun = !wasTrueEndUnlocked;
     GAME.endIdThisRun = getEndIdForLives(GAME.lives);
     GAME.clearStartTime = GAME.time;
     GAME.state = "end_clearing";
@@ -2826,7 +2830,6 @@ function drawTitle() {
   if (secret && secret.visible) {
     const secretText = "？？？";
     ctx.font = linkMainFont;
-    ctx.fillStyle = "#f7f1df";
     const secretW = ctx.measureText(secretText).width;
     const secretBoxW = secretW + linkPaddingX * 2;
     const secretBoxH = linkMainSize + linkPaddingY * 2;
@@ -2834,10 +2837,16 @@ function drawTitle() {
     const secretY = baseLinkY - 28;
     const secretTextX = secretX + secretBoxW / 2;
     const secretTextY = secretY + linkPaddingY + linkMainSize;
+    const secretPulse = 0.75 + 0.25 * Math.sin(timeSec * Math.PI * 2);
+    ctx.save();
+    ctx.shadowColor = "rgba(255, 223, 88, 0.85)";
+    ctx.shadowBlur = 8 + secretPulse * 6;
+    ctx.fillStyle = "#ffdf58";
     ctx.fillText(secretText, secretTextX, secretTextY);
-    ctx.strokeStyle = "rgba(247, 241, 223, 0.6)";
+    ctx.strokeStyle = `rgba(255, 223, 88, ${0.65 + secretPulse * 0.25})`;
     ctx.lineWidth = 1;
     ctx.strokeRect(secretX, secretY, secretBoxW, secretBoxH);
+    ctx.restore();
     secret.rect.x = secretX;
     secret.rect.y = secretY;
     secret.rect.w = secretBoxW;
@@ -3120,9 +3129,27 @@ function drawResult(overrides = null) {
   ctx.fillText("#mayousa_late_run", centerX, hashY);
   ctx.strokeText(dateText, centerX, dateY);
   ctx.fillText(dateText, centerX, dateY);
-  const endText = isTrueEndUnlocked() ? "True End 解放済み" : "";
-  ctx.strokeText(endText, centerX, endCountY);
-  ctx.fillText(endText, centerX, endCountY);
+  const endText = GAME.trueEndUnlockedThisRun
+    ? "True End 解放！"
+    : isTrueEndUnlocked()
+      ? "True End 解放済み"
+      : "";
+  if (GAME.trueEndUnlockedThisRun) {
+    const unlockPulse = 0.8 + 0.2 * Math.sin((GAME.time / 1000) * Math.PI * 2);
+    ctx.save();
+    ctx.font = `bold 18px ${FONT_FAMILY}`;
+    ctx.fillStyle = "#ffdf58";
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.lineWidth = 5;
+    ctx.shadowColor = "rgba(255, 223, 88, 0.8)";
+    ctx.shadowBlur = 10 + unlockPulse * 8;
+    ctx.strokeText(endText, centerX, endCountY);
+    ctx.fillText(endText, centerX, endCountY);
+    ctx.restore();
+  } else {
+    ctx.strokeText(endText, centerX, endCountY);
+    ctx.fillText(endText, centerX, endCountY);
+  }
   ctx.restore();
 
   const timeSec = GAME.time / 1000;
