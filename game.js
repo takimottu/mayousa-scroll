@@ -29,6 +29,7 @@ const RESULT_SCORE_DURATION = 1400;
 const RESULT_BONUS_STEP_INTERVAL = 320;
 const RESULT_BONUS_SETTLE = 400;
 const RESULT_TAP_ENABLE_DELAY = 1000;
+const TITLE_INPUT_LOCK_MS = 600;
 const TRUE_END_UNLOCK_STORAGE_KEY = "mayousaTrueEndUnlocked";
 const OFFICIAL_SITE_URL = "https://sites.google.com/view/matomayo";
 const PERFORMANCE_INFO_URL = "https://sites.google.com/view/wishcdl";
@@ -281,6 +282,7 @@ const GAME = {
   trueEndResultPublished: false,
   trueEndCreditStopAt: 0,
   trueEndCreditStopBaseY: 0,
+  titleInputLockedUntil: 0,
   titleStartTime: performance.now(),
   prevState: "title",
   testMode: false,
@@ -3332,6 +3334,9 @@ function handleCanvasTap(clientX, clientY) {
     return true;
   }
   if (GAME.state === "title") {
+    if (performance.now() < GAME.titleInputLockedUntil) {
+      return true;
+    }
     handleTitlePointer(clientX, clientY);
     return true;
   }
@@ -3372,7 +3377,9 @@ function isTypingTarget(target) {
 
 function backToTitle() {
   clearMovementKeys();
+  GAME.pointerActive = false;
   GAME.obstacles = [];
+  GAME.titleInputLockedUntil = performance.now() + TITLE_INPUT_LOCK_MS;
   GAME.state = "title";
 }
 
