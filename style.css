@@ -347,6 +347,6 @@ canvas {
   }
 
   .touch-controls {
-    width: min(360px, calc(100vw - 28px));
+    display: none;
   }
 }

@@ -254,6 +254,9 @@ const GAME = {
   stage4Pattern: null,
   stage4RecoverUntil: 0,
   stage4NoConvergeUntil: 0,
+  pointerActive: false,
+  pointerTargetX: 0,
+  pointerTargetY: 0,
   enemy: { x: 0, y: 0, w: 34, h: 34, bobPhase: 0 },
   startDelayMs: START_DELAY_FIRST,
   startAt: 0,
@@ -825,6 +828,9 @@ function resetGame() {
   GAME.stage4Pattern = null;
   GAME.stage4RecoverUntil = 0;
   GAME.stage4NoConvergeUntil = 0;
+  GAME.pointerActive = false;
+  GAME.pointerTargetX = 0;
+  GAME.pointerTargetY = 0;
   GAME.enemy.x = EMITTER_X();
   GAME.enemy.y = EMITTER_Y;
   GAME.enemy.bobPhase = 0;
@@ -1099,10 +1105,24 @@ function spawnObstacleBatch(patternIndex) {
 }
 
 function updatePlayer() {
-  if (GAME.keys.left) GAME.player.x -= GAME.player.speed;
-  if (GAME.keys.right) GAME.player.x += GAME.player.speed;
-  if (GAME.keys.up) GAME.player.y -= GAME.player.speed;
-  if (GAME.keys.down) GAME.player.y += GAME.player.speed;
+  const keyboardDx = (GAME.keys.right ? 1 : 0) - (GAME.keys.left ? 1 : 0);
+  const keyboardDy = (GAME.keys.down ? 1 : 0) - (GAME.keys.up ? 1 : 0);
+  if (keyboardDx || keyboardDy) {
+    GAME.pointerActive = false;
+    GAME.player.x += keyboardDx * GAME.player.speed;
+    GAME.player.y += keyboardDy * GAME.player.speed;
+  } else if (GAME.pointerActive) {
+    const targetX = GAME.pointerTargetX - GAME.player.w / 2;
+    const targetY = GAME.pointerTargetY - GAME.player.h / 2;
+    const dx = targetX - GAME.player.x;
+    const dy = targetY - GAME.player.y;
+    const distance = Math.hypot(dx, dy);
+    const step = Math.min(distance, GAME.player.speed * 1.35);
+    if (distance > 1) {
+      GAME.player.x += (dx / distance) * step;
+      GAME.player.y += (dy / distance) * step;
+    }
+  }
   const { left, right } = getPlayAreaBounds();
   const minX = left;
   const maxX = right - GAME.player.w;
@@ -3256,13 +3276,26 @@ function getTitleUiHit(x, y) {
 }
 
 function handleTitlePointer(clientX, clientY) {
+  const { x, y } = getCanvasPoint(clientX, clientY);
+  const hit = getTitleUiHit(x, y);
+  if (hit) hit.onClick();
+}
+
+function getCanvasPoint(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = GAME.width / rect.width;
   const scaleY = GAME.height / rect.height;
-  const x = (clientX - rect.left) * scaleX;
-  const y = (clientY - rect.top) * scaleY;
-  const hit = getTitleUiHit(x, y);
-  if (hit) hit.onClick();
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY,
+  };
+}
+
+function setPointerTarget(clientX, clientY) {
+  const point = getCanvasPoint(clientX, clientY);
+  GAME.pointerActive = true;
+  GAME.pointerTargetX = point.x;
+  GAME.pointerTargetY = point.y;
 }
 
 function handleHiddenTestKey() {
@@ -3277,16 +3310,34 @@ function handleHiddenTestKey() {
   }
 }
 
-function backToTitle() {
+function clearMovementKeys() {
   GAME.keys.left = false;
   GAME.keys.right = false;
   GAME.keys.up = false;
   GAME.keys.down = false;
+  document.querySelectorAll("[data-key]").forEach((button) => {
+    button.classList.remove("is-pressed");
+  });
+}
+
+function isTypingTarget(target) {
+  if (!target) return false;
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+}
+
+function backToTitle() {
+  clearMovementKeys();
   GAME.obstacles = [];
   GAME.state = "title";
 }
 
 window.addEventListener("keydown", (e) => {
+  if (isTypingTarget(e.target)) return;
+  const movementKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "w", "W", "a", "A", "s", "S", "d", "D"];
+  if (GAME.state === "play" && movementKeys.includes(e.key)) {
+    e.preventDefault();
+  }
   if (e.key === "ArrowLeft") GAME.keys.left = true;
   if (e.key === "ArrowRight") GAME.keys.right = true;
   if (e.key === "ArrowUp") GAME.keys.up = true;
@@ -3326,14 +3377,43 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-canvas.addEventListener("pointerup", (e) => {
-  if (GAME.state !== "title") return;
+canvas.addEventListener("pointerdown", (e) => {
+  canvas.focus();
+  if (GAME.state !== "play") return;
   e.preventDefault();
-  e.stopPropagation();
-  handleTitlePointer(e.clientX, e.clientY);
+  canvas.setPointerCapture(e.pointerId);
+  clearMovementKeys();
+  setPointerTarget(e.clientX, e.clientY);
+});
+
+canvas.addEventListener("pointerup", (e) => {
+  canvas.focus();
+  if (GAME.state === "play") {
+    e.preventDefault();
+    GAME.pointerActive = false;
+    return;
+  }
+  if (GAME.state === "title") {
+    e.preventDefault();
+    e.stopPropagation();
+    handleTitlePointer(e.clientX, e.clientY);
+  }
+});
+
+canvas.addEventListener("pointercancel", () => {
+  GAME.pointerActive = false;
+});
+
+canvas.addEventListener("lostpointercapture", () => {
+  GAME.pointerActive = false;
 });
 
 canvas.addEventListener("pointermove", (e) => {
+  if (GAME.state === "play" && GAME.pointerActive) {
+    e.preventDefault();
+    setPointerTarget(e.clientX, e.clientY);
+    return;
+  }
   if (GAME.state !== "title") {
     canvas.style.cursor = "";
     return;
@@ -3348,6 +3428,7 @@ canvas.addEventListener("pointermove", (e) => {
 });
 
 window.addEventListener("keyup", (e) => {
+  if (isTypingTarget(e.target)) return;
   if (e.key === "ArrowLeft") GAME.keys.left = false;
   if (e.key === "ArrowRight") GAME.keys.right = false;
   if (e.key === "ArrowUp") GAME.keys.up = false;
@@ -3356,6 +3437,11 @@ window.addEventListener("keyup", (e) => {
   if (e.key === "s" || e.key === "S") GAME.keys.down = false;
   if (e.key === "a" || e.key === "A") GAME.keys.left = false;
   if (e.key === "d" || e.key === "D") GAME.keys.right = false;
+});
+
+window.addEventListener("blur", clearMovementKeys);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) clearMovementKeys();
 });
 
 document.querySelectorAll("[data-key]").forEach((button) => {
