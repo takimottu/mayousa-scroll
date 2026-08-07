@@ -2835,8 +2835,7 @@ function drawTitle() {
   };
 
   const baseLinkY = GAME.height - linkBottomMargin - (linkMainSize + linkPaddingY * 2);
-  const officialY = secret && secret.visible ? baseLinkY - 28 : baseLinkY;
-  drawTitleLink("official", "制作者サイトへ >", linkRightMargin, officialY);
+  drawTitleLink("official", "制作者サイトへ >", linkRightMargin, baseLinkY);
   const perfText = "公演情報へ >";
   ctx.font = linkMainFont;
   const perfW = ctx.measureText(perfText).width + linkPaddingX * 2;
@@ -2850,7 +2849,7 @@ function drawTitle() {
     const secretBoxW = secretW + linkPaddingX * 2;
     const secretBoxH = linkMainSize + linkPaddingY * 2;
     const secretX = linkRightMargin;
-    const secretY = GAME.height - linkBottomMargin - secretBoxH;
+    const secretY = baseLinkY - 28;
     const secretTextX = secretX + secretBoxW / 2;
     const secretTextY = secretY + linkPaddingY + linkMainSize;
     ctx.fillText(secretText, secretTextX, secretTextY);
