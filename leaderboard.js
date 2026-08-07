@@ -15,6 +15,8 @@
     submit: document.getElementById("submitScore"),
     share: document.getElementById("shareScore"),
     shareImage: document.getElementById("shareImageScore"),
+    imagePreview: document.getElementById("resultImagePreview"),
+    resultImage: document.getElementById("resultImage"),
     message: document.getElementById("resultMessage"),
     list: document.getElementById("rankingList"),
     status: document.getElementById("rankingStatus"),
@@ -207,11 +209,6 @@
     });
   }
 
-  async function dataUrlToBlob(dataUrl) {
-    const response = await fetch(dataUrl);
-    return response.blob();
-  }
-
   async function createResultCardDataUrl() {
     const selected = mayousaShareData[els.shareMayousa?.value] || mayousaShareData.hat;
     const image = await loadImage(selected.src);
@@ -266,19 +263,13 @@
 
   async function shareImageScore() {
     if (!latestResult) return;
-    const imageWindow = window.open("", "_blank", "noopener,noreferrer");
     els.shareImage.disabled = true;
     setMessage("画像を作成中...");
     try {
       const dataUrl = await createResultCardDataUrl();
-      const blob = await dataUrlToBlob(dataUrl);
-      const imageUrl = URL.createObjectURL(blob);
-      if (imageWindow) {
-        imageWindow.location.href = imageUrl;
-      } else {
-        window.open(imageUrl, "_blank", "noopener,noreferrer");
-      }
-      setMessage("リザルト画像を別タブで開きました。保存してポストに添付できます。");
+      els.resultImage.src = dataUrl;
+      els.imagePreview.hidden = false;
+      setMessage("リザルト画像を表示しました。保存してポストに添付できます。");
     } catch (error) {
       console.error(error);
       setMessage("画像作成に失敗しました。通常ポストを使ってください。");
@@ -342,6 +333,8 @@
     els.submit.disabled = !!result.testMode || !!result.isTrueEnd;
     els.mayousaPicker.hidden = false;
     els.shareImage.hidden = false;
+    els.imagePreview.hidden = true;
+    els.resultImage.removeAttribute("src");
     const savedName = localStorage.getItem("mayousaPlayerName");
     if (savedName && !els.playerName.value) els.playerName.value = savedName;
     if (result.testMode) {

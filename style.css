@@ -244,6 +244,28 @@ canvas {
   width: 100%;
 }
 
+.result-image-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.result-image-preview[hidden] {
+  display: none;
+}
+
+.result-image-preview img {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.result-image-preview span {
+  color: rgba(232, 237, 242, 0.66);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .primary-button:disabled,
 .secondary-button:disabled {
   opacity: 0.52;

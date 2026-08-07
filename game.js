@@ -579,7 +579,7 @@ const SCENE_NAMES = [
   "Night Song",
 ];
 const TITLE_THRESHOLDS = [
-  { max: 999, label: "まだ寝ぼけてた朝" },
+  { max: 999, label: "まだ寝ぼけてる" },
   { max: 2999, label: "走り出したけど間に合わない！" },
   { max: 4999, label: "本気ダッシュ！" },
   { max: 7999, label: "ほぼ間に合った！" },
