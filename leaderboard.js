@@ -207,11 +207,12 @@
     });
   }
 
-  function canvasToBlob(canvas) {
-    return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  async function dataUrlToBlob(dataUrl) {
+    const response = await fetch(dataUrl);
+    return response.blob();
   }
 
-  async function createResultCardFile() {
+  async function createResultCardDataUrl() {
     const selected = mayousaShareData[els.shareMayousa?.value] || mayousaShareData.hat;
     const image = await loadImage(selected.src);
     const isTrueEnd = !!latestResult.isTrueEnd;
@@ -260,42 +261,27 @@
     c.font = "600 24px sans-serif";
     c.fillText(location.hostname, 92, 584);
 
-    const blob = await canvasToBlob(card);
-    const name = isTrueEnd ? "late-runner-true-end.png" : "late-runner-result.png";
-    return new File([blob], name, { type: "image/png" });
+    return card.toDataURL("image/png");
   }
 
   async function shareImageScore() {
     if (!latestResult) return;
+    const imageWindow = window.open("", "_blank", "noopener,noreferrer");
     els.shareImage.disabled = true;
     setMessage("画像を作成中...");
     try {
-      const file = await createResultCardFile();
-      const selected = mayousaShareData[els.shareMayousa?.value] || mayousaShareData.hat;
-      const text = [
-        "#Late_Runner",
-        `あなたのSCORE【 ${latestResult.score} 】`,
-        `到達シーン【${latestResult.sceneName || "開演前"}】`,
-        `称号【${latestResult.title || "まようさ遅刻中"}】`,
-        `推しまようさ【${selected.name}】`,
-        "次回公演をお楽しみに！",
-      ].join("\n");
-      if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
-        await navigator.share({ files: [file], text, url: location.href.split("#")[0] });
-        setMessage("共有画面を開きました。");
+      const dataUrl = await createResultCardDataUrl();
+      const blob = await dataUrlToBlob(dataUrl);
+      const imageUrl = URL.createObjectURL(blob);
+      if (imageWindow) {
+        imageWindow.location.href = imageUrl;
       } else {
-        const downloadUrl = URL.createObjectURL(file);
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(downloadUrl);
-        setMessage("画像を保存しました。ポスト画面で添付してください。");
-        shareScore();
+        window.open(imageUrl, "_blank", "noopener,noreferrer");
       }
+      setMessage("リザルト画像を別タブで開きました。保存してポストに添付できます。");
     } catch (error) {
       console.error(error);
-      setMessage("画像つき共有に失敗しました。通常ポストを使ってください。");
+      setMessage("画像作成に失敗しました。通常ポストを使ってください。");
     } finally {
       els.shareImage.disabled = false;
     }

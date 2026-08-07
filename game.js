@@ -1,5 +1,13 @@
 ﻿const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const LOGICAL_WIDTH = Number(canvas.getAttribute("width")) || 360;
+const LOGICAL_HEIGHT = Number(canvas.getAttribute("height")) || 640;
+const CANVAS_DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+canvas.width = Math.round(LOGICAL_WIDTH * CANVAS_DPR);
+canvas.height = Math.round(LOGICAL_HEIGHT * CANVAS_DPR);
+ctx.setTransform(CANVAS_DPR, 0, 0, CANVAS_DPR, 0, 0);
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = "high";
 
 const MAX_DISTANCE = 8000;
 const HIT_FLASH_DURATION = 180;
@@ -232,10 +240,10 @@ function advanceTrueEndPhase() {
 }
 
 const GAME = {
-  width: canvas.width,
-  height: canvas.height,
+  width: LOGICAL_WIDTH,
+  height: LOGICAL_HEIGHT,
   lanePadding: 40,
-  player: { x: canvas.width / 2, y: canvas.height - 80, w: 36, h: 36, speed: 4 },
+  player: { x: LOGICAL_WIDTH / 2, y: LOGICAL_HEIGHT - 80, w: 36, h: 36, speed: 4 },
   scrollSpeed: 2,
   distance: 0,
   goalDistance: 8000,
@@ -260,7 +268,7 @@ const GAME = {
   bulletSweepPhase: 0,
   patternIndex: 0,
   patternPauseUntil: 0,
-  safeLaneX: canvas.width / 2,
+  safeLaneX: LOGICAL_WIDTH / 2,
   bigBulletTimer: 0,
   ceilingTimer: 0,
   snapshotTimer: 0,
@@ -3277,8 +3285,8 @@ function getTitleUiHit(x, y) {
 
 function handleTitlePointer(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
+  const scaleX = GAME.width / rect.width;
+  const scaleY = GAME.height / rect.height;
   const x = (clientX - rect.left) * scaleX;
   const y = (clientY - rect.top) * scaleY;
   const hit = getTitleUiHit(x, y);
@@ -3359,8 +3367,8 @@ canvas.addEventListener("pointermove", (e) => {
     return;
   }
   const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
+  const scaleX = GAME.width / rect.width;
+  const scaleY = GAME.height / rect.height;
   const x = (e.clientX - rect.left) * scaleX;
   const y = (e.clientY - rect.top) * scaleY;
   const hit = getTitleUiHit(x, y);
