@@ -550,11 +550,11 @@ const STAGE4_CEILING_MAX = 3;
 const STAGE4_CEILING_SPEED = 0.55;
 const GAME_SPEED_SCALE = 0.75;
 const MAYOUSA_PARTY = [
-  { name: "帽子まようさ", line: "あとは任せたよ！" },
-  { name: "グラサンまようさ", line: "ちょっと無理しすぎたか〜" },
-  { name: "おはなまようさ", line: "ごめんね応援してるよ" },
-  { name: "りんごまようさ", line: "まだいけるよね！？" },
-  { name: "りぼんまようさ", line: "ぜったい間に合わせて！" },
+  { name: "まようさハット", line: "あとは任せたよ！" },
+  { name: "まようさグラサン", line: "ちょっと無理しすぎたか〜" },
+  { name: "まようさおはな", line: "ごめんね応援してるよ" },
+  { name: "まようさりんご", line: "まだいけるよね！？" },
+  { name: "まようさりぼん", line: "ぜったい間に合わせて！" },
 ];
 const MAYOUSA_MESSAGE_DURATION = 800;
 const LIFE_BONUS = 400;

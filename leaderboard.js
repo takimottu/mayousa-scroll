@@ -24,11 +24,11 @@
   let latestResult = null;
   let submittedRunId = "";
   const mayousaShareData = {
-    hat: { name: "ハットまようさ", src: "assets/player/mayousa_hat.png" },
-    glasses: { name: "グラサンまようさ", src: "assets/player/mayousa_glasses.png" },
-    flower: { name: "おはなまようさ", src: "assets/player/mayousa_flower.png" },
-    apple: { name: "りんごまようさ", src: "assets/player/mayousa_apple.png" },
-    ribbon: { name: "りぼんまようさ", src: "assets/player/mayousa_ribbon.png" },
+    hat: { name: "まようさハット", src: "assets/player/mayousa_hat.png" },
+    glasses: { name: "まようさグラサン", src: "assets/player/mayousa_glasses.png" },
+    flower: { name: "まようさおはな", src: "assets/player/mayousa_flower.png" },
+    apple: { name: "まようさりんご", src: "assets/player/mayousa_apple.png" },
+    ribbon: { name: "まようさりぼん", src: "assets/player/mayousa_ribbon.png" },
   };
 
   function setStatus(text) {
@@ -64,6 +64,7 @@
       end_id: result.endId,
       title: result.title,
       scene_name: result.sceneName,
+      favorite_mayousa: els.shareMayousa?.value || "hat",
     };
   }
 
@@ -109,7 +110,7 @@
         .sort((a, b) => b.score - a.score || new Date(a.completed_at) - new Date(b.completed_at))
         .slice(0, 10);
     }
-    const query = `${encodeURIComponent(table)}?select=player_name,score,completed_at,lives,end_id,title,scene_name&order=score.desc,completed_at.asc&limit=10`;
+    const query = `${encodeURIComponent(table)}?select=player_name,score,completed_at,lives,end_id,title,scene_name,favorite_mayousa&order=score.desc,completed_at.asc&limit=10`;
     return requestSupabase(query, { method: "GET", headers: { Prefer: "" } });
   }
 
@@ -275,23 +276,28 @@
     rows.forEach((row, index) => {
       const li = document.createElement("li");
       const rank = document.createElement("div");
+      const icon = document.createElement("img");
       const body = document.createElement("div");
       const name = document.createElement("div");
       const meta = document.createElement("div");
       const score = document.createElement("div");
+      const favorite = mayousaShareData[row.favorite_mayousa] || mayousaShareData.hat;
 
       rank.className = "rank-num";
+      icon.className = "rank-icon";
       name.className = "rank-name";
       meta.className = "rank-date";
       score.className = "rank-score";
 
       rank.textContent = `#${index + 1}`;
+      icon.src = favorite.src;
+      icon.alt = favorite.name;
       name.textContent = row.player_name || "まようさ";
-      meta.textContent = `${formatDate(row.completed_at)} ${row.lives || 0}羽`;
+      meta.textContent = `${formatDate(row.completed_at)} ${row.lives || 0}羽 / ${favorite.name}`;
       score.textContent = String(row.score || 0);
 
       body.append(name, meta);
-      li.append(rank, body, score);
+      li.append(rank, icon, body, score);
       els.list.appendChild(li);
     });
   }
@@ -318,7 +324,7 @@
     els.actions.hidden = false;
     els.latestScore.textContent = String(result.score);
     els.submit.disabled = !result.cleared || !!result.testMode || !!result.isTrueEnd;
-    els.mayousaPicker.hidden = !result.isTrueEnd;
+    els.mayousaPicker.hidden = false;
     els.shareImage.hidden = !result.isTrueEnd;
     const savedName = localStorage.getItem("mayousaPlayerName");
     if (savedName && !els.playerName.value) els.playerName.value = savedName;

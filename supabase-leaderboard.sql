@@ -7,8 +7,12 @@ create table if not exists public.mayousa_scores (
   end_id text not null,
   title text not null default '',
   scene_name text not null default '',
+  favorite_mayousa text not null default 'hat',
   created_at timestamptz not null default now()
 );
+
+alter table public.mayousa_scores
+  add column if not exists favorite_mayousa text not null default 'hat';
 
 create index if not exists mayousa_scores_ranking_idx
   on public.mayousa_scores (score desc, completed_at asc);

@@ -260,7 +260,7 @@ canvas {
 
 .ranking-list li {
   display: grid;
-  grid-template-columns: 34px 1fr auto;
+  grid-template-columns: 34px 34px 1fr auto;
   gap: 10px;
   align-items: center;
   min-height: 48px;
@@ -273,6 +273,12 @@ canvas {
 .rank-num {
   color: #ffdf83;
   font-weight: 800;
+}
+
+.rank-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 
 .rank-name {
