@@ -18,6 +18,7 @@ const END_CLEAR_MAX_MS = 2000;
 const RESULT_FADE_MS = 800;
 const END_IDS = ["hat", "sunglass", "flower", "apple", "ribbon", "gameover"];
 const ENDS_STORAGE_KEY = "mayousaEndsCollected";
+const OFFICIAL_SITE_URL = "https://sites.google.com/view/matomayo";
 const PERFORMANCE_INFO_URL = "https://sites.google.com/view/wishcdl";
 const TRUE_END_PHASE2_LINE_MS = 4000;
 const TRUE_END_PHASE2_LINES = [
@@ -446,6 +447,13 @@ const bgDebug = {
 const titleUiElements = [
   {
     id: "official",
+    rect: { x: 0, y: 0, w: 0, h: 0 },
+    visible: true,
+    enabled: true,
+    onClick: () => openExternal(OFFICIAL_SITE_URL),
+  },
+  {
+    id: "performance",
     rect: { x: 0, y: 0, w: 0, h: 0 },
     visible: true,
     enabled: true,
@@ -1336,7 +1344,7 @@ function update() {
       GAME.lastEndDialogLineIndex = currentIndex;
     }
     if (elapsed >= END_DIALOG_LINE_MS * lineCount) {
-      if (!GAME.endRecorded) {
+      if (!GAME.testMode && !GAME.endRecorded) {
         recordEndCollection(GAME.endIdThisRun);
         GAME.endRecorded = true;
       }
@@ -1421,7 +1429,7 @@ function update() {
         GAME.hitFlashUntil = GAME.time + GAMEOVER_FLASH_DURATION;
         GAME.hitFlashDuration = GAMEOVER_FLASH_DURATION;
         GAME.endIdThisRun = "gameover";
-        if (!GAME.endRecorded && GAME.distance < GAME.goalDistance) {
+        if (!GAME.testMode && !GAME.endRecorded && GAME.distance < GAME.goalDistance) {
           recordEndCollection(GAME.endIdThisRun);
           GAME.endRecorded = true;
         }
@@ -2759,35 +2767,12 @@ function drawTitle() {
   ctx.fillText("Enterで開始！", GAME.width / 2, GAME.height - 62);
   ctx.globalAlpha = 1;
 
-  const linkMainFont = `bold 11px ${FONT_FAMILY}`;
-  const linkMainText = "公演情報へ >";
+  const linkMainFont = `bold 10px ${FONT_FAMILY}`;
   const linkMainSize = 11;
   const linkPaddingX = 7;
   const linkPaddingY = 6;
   const linkRightMargin = 18;
   const linkBottomMargin = 18;
-
-  ctx.fillStyle = "#f7f1df";
-  ctx.font = linkMainFont;
-  const mainW = ctx.measureText(linkMainText).width;
-  const linkW = mainW + linkPaddingX * 2;
-  const linkH = linkMainSize + linkPaddingY * 2;
-  const linkX = GAME.width - linkRightMargin - linkW;
-  const linkY = GAME.height - linkBottomMargin - linkH;
-  const textX = linkX + linkW / 2;
-  const textY = linkY + linkPaddingY + linkMainSize;
-  ctx.fillText(linkMainText, textX, textY);
-  const official = titleUiElements.find((el) => el.id === "official");
-  if (official) {
-    official.rect.x = linkX;
-    official.rect.y = linkY;
-    official.rect.w = linkW;
-    official.rect.h = linkH;
-  }
-
-  ctx.strokeStyle = "rgba(247, 241, 223, 0.6)";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(linkX, linkY, linkW, linkH);
 
   const endData = loadEndsCollected();
   const collectedCount = countCollectedEnds(endData);
@@ -2796,6 +2781,36 @@ function drawTitle() {
     secret.visible = collectedCount === 6;
     secret.enabled = collectedCount === 6;
   }
+
+  const drawTitleLink = (id, text, x, y) => {
+    ctx.fillStyle = "#f7f1df";
+    ctx.font = linkMainFont;
+    const w = ctx.measureText(text).width + linkPaddingX * 2;
+    const h = linkMainSize + linkPaddingY * 2;
+    ctx.fillText(text, x + w / 2, y + linkPaddingY + linkMainSize);
+    ctx.strokeStyle = "rgba(247, 241, 223, 0.6)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+    const el = titleUiElements.find((item) => item.id === id);
+    if (el) {
+      el.rect.x = x;
+      el.rect.y = y;
+      el.rect.w = w;
+      el.rect.h = h;
+      el.visible = true;
+      el.enabled = true;
+    }
+    return { w, h };
+  };
+
+  const baseLinkY = GAME.height - linkBottomMargin - (linkMainSize + linkPaddingY * 2);
+  const officialY = secret && secret.visible ? baseLinkY - 28 : baseLinkY;
+  drawTitleLink("official", "制作者サイトへ >", linkRightMargin, officialY);
+  const perfText = "公演情報へ >";
+  ctx.font = linkMainFont;
+  const perfW = ctx.measureText(perfText).width + linkPaddingX * 2;
+  drawTitleLink("performance", perfText, GAME.width - linkRightMargin - perfW, baseLinkY);
+
   if (secret && secret.visible) {
     const secretText = "？？？";
     ctx.font = linkMainFont;
@@ -3265,6 +3280,7 @@ function handleHiddenTestKey() {
   GAME.testKeyLastAt = now;
   if (GAME.testKeyCount >= 5) {
     GAME.testMode = !GAME.testMode;
+    if (GAME.testMode) setAllEndsCollected();
     GAME.testKeyCount = 0;
     console.info(`Mayousa test mode ${GAME.testMode ? "enabled" : "disabled"}`);
   }
