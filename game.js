@@ -2828,7 +2828,7 @@ function drawTitle() {
   drawTitleLink("performance", perfText, GAME.width - linkRightMargin - perfW, baseLinkY);
 
   if (secret && secret.visible) {
-    const secretText = "？？？";
+    const secretText = "True Endを見る";
     ctx.font = linkMainFont;
     const secretW = ctx.measureText(secretText).width;
     const secretBoxW = secretW + linkPaddingX * 2;
@@ -2996,11 +2996,21 @@ function drawResult(overrides = null) {
       ctx.lineWidth = 4;
       ctx.fillStyle = "#ffffff";
       ctx.globalAlpha = pulse;
-      const resultHelpText = canTapResultToTitle()
-        ? "タップでタイトル / Rでリトライ"
-        : "Rでリトライ / Tでタイトル";
-      ctx.strokeText(resultHelpText, GAME.width / 2, GAME.height - 24);
-      ctx.fillText(resultHelpText, GAME.width / 2, GAME.height - 24);
+      if (GAME.trueEndUnlockedThisRun) {
+        const titleHelp = canTapResultToTitle() ? "タップでタイトルへ" : "Tでタイトルへ";
+        ctx.font = `bold 18px ${FONT_FAMILY}`;
+        ctx.strokeText(titleHelp, GAME.width / 2, GAME.height - 40);
+        ctx.fillText(titleHelp, GAME.width / 2, GAME.height - 40);
+        ctx.font = `bold 15px ${FONT_FAMILY}`;
+        ctx.strokeText("True Endを選べます", GAME.width / 2, GAME.height - 18);
+        ctx.fillText("True Endを選べます", GAME.width / 2, GAME.height - 18);
+      } else {
+        const resultHelpText = canTapResultToTitle()
+          ? "タップでタイトル / Rでリトライ"
+          : "Rでリトライ / Tでタイトル";
+        ctx.strokeText(resultHelpText, GAME.width / 2, GAME.height - 24);
+        ctx.fillText(resultHelpText, GAME.width / 2, GAME.height - 24);
+      }
       ctx.globalAlpha = 1;
     }
   }
@@ -3137,7 +3147,7 @@ function drawResult(overrides = null) {
   if (GAME.trueEndUnlockedThisRun) {
     const unlockPulse = 0.8 + 0.2 * Math.sin((GAME.time / 1000) * Math.PI * 2);
     ctx.save();
-    ctx.font = `bold 18px ${FONT_FAMILY}`;
+    ctx.font = `bold 17px ${FONT_FAMILY}`;
     ctx.fillStyle = "#ffdf58";
     ctx.strokeStyle = "rgba(0, 0, 0, 0.75)";
     ctx.lineWidth = 5;
@@ -3145,6 +3155,12 @@ function drawResult(overrides = null) {
     ctx.shadowBlur = 10 + unlockPulse * 8;
     ctx.strokeText(endText, centerX, endCountY);
     ctx.fillText(endText, centerX, endCountY);
+    ctx.font = `bold 10px ${FONT_FAMILY}`;
+    ctx.fillStyle = "#fff7d6";
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 4;
+    ctx.strokeText("タイトルに戻ると選べます", centerX, endCountY + 18);
+    ctx.fillText("タイトルに戻ると選べます", centerX, endCountY + 18);
     ctx.restore();
   } else {
     ctx.strokeText(endText, centerX, endCountY);
