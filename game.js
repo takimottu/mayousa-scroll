@@ -10,6 +10,8 @@ ctx.imageSmoothingEnabled = true;
 ctx.imageSmoothingQuality = "high";
 
 const MAX_DISTANCE = 8000;
+const TARGET_FRAME_MS = 1000 / 60;
+const MAX_FRAME_DELTA_MS = 100;
 const HIT_FLASH_DURATION = 180;
 const GAMEOVER_FLASH_DURATION = 350;
 const SHAKE_DURATION = 300;
@@ -235,6 +237,9 @@ const GAME = {
   state: "title",
   keys: { left: false, right: false, up: false, down: false },
   time: performance.now(),
+  lastFrameTime: 0,
+  frameDeltaMs: TARGET_FRAME_MS,
+  dtScale: 1,
   spawnPauseUntil: 0,
   pauseUntil: 0,
   boostUntil: 0,
@@ -1114,15 +1119,16 @@ function spawnObstacleBatch(patternIndex) {
 }
 
 function updatePlayer() {
+  const dt = GAME.dtScale;
   const keyboardDx = (GAME.keys.right ? 1 : 0) - (GAME.keys.left ? 1 : 0);
   const keyboardDy = (GAME.keys.down ? 1 : 0) - (GAME.keys.up ? 1 : 0);
   if (keyboardDx || keyboardDy) {
     GAME.pointerActive = false;
-    GAME.player.x += keyboardDx * GAME.player.speed;
-    GAME.player.y += keyboardDy * GAME.player.speed;
+    GAME.player.x += keyboardDx * GAME.player.speed * dt;
+    GAME.player.y += keyboardDy * GAME.player.speed * dt;
   } else if (GAME.pointerActive) {
-    GAME.player.x += GAME.pointerDx * GAME.player.speed * (2 / 3);
-    GAME.player.y += GAME.pointerDy * GAME.player.speed * (2 / 3);
+    GAME.player.x += GAME.pointerDx * GAME.player.speed * (2 / 3) * dt;
+    GAME.player.y += GAME.pointerDy * GAME.player.speed * (2 / 3) * dt;
   }
   const { left, right } = getPlayAreaBounds();
   const minX = left;
@@ -1134,13 +1140,14 @@ function updatePlayer() {
 }
 
 function updateObstacles() {
+  const dt = GAME.dtScale;
   const elapsedFromStart = GAME.time - GAME.startAt;
   if (!GAME.hasStartedOnce && elapsedFromStart >= GAME.startDelayMs) {
     GAME.hasStartedOnce = true;
   }
   if (elapsedFromStart < GAME.startDelayMs) return;
   const playerCenterX = GAME.player.x + GAME.player.w / 2;
-  GAME.safeLaneX += (playerCenterX - GAME.safeLaneX) * SAFE_LANE_LERP;
+  GAME.safeLaneX += (playerCenterX - GAME.safeLaneX) * Math.min(1, SAFE_LANE_LERP * dt);
   const { left, right } = getPlayAreaBounds();
   const laneMin = left + SAFE_LANE_WIDTH / 2;
   const laneMax = right - SAFE_LANE_WIDTH / 2;
@@ -1157,7 +1164,7 @@ function updateObstacles() {
   if (stageIndex === 4) {
     updateStage4Spawns();
   } else {
-    GAME.obstacleTimer += 1;
+    GAME.obstacleTimer += dt;
     if (GAME.obstacleTimer > BULLET_SPAWN_INTERVAL) {
       if (
         (!GAME.spawnPauseUntil || GAME.time >= GAME.spawnPauseUntil) &&
@@ -1167,7 +1174,7 @@ function updateObstacles() {
       }
       GAME.obstacleTimer = 0;
     }
-    GAME.bigBulletTimer += 1;
+    GAME.bigBulletTimer += dt;
     const bigConfig = STAGE_BIG_CONFIG[GAME.patternIndex % STAGE_BIG_CONFIG.length];
     if (GAME.bigBulletTimer > bigConfig.spawnInterval) {
       if (
@@ -1188,7 +1195,7 @@ function updateObstacles() {
       }
       GAME.bigBulletTimer = 0;
     }
-    GAME.ceilingTimer += 1;
+    GAME.ceilingTimer += dt;
     const ceilingConfig = STAGE_CEILING_CONFIG[GAME.patternIndex % STAGE_CEILING_CONFIG.length];
     if (ceilingConfig.enabled && GAME.ceilingTimer > ceilingConfig.interval) {
       if (
@@ -1199,7 +1206,7 @@ function updateObstacles() {
       }
       GAME.ceilingTimer = 0;
     }
-    GAME.snapshotTimer += 1;
+    GAME.snapshotTimer += dt;
     const snapshotConfig = STAGE_SNAPSHOT_CONFIG[GAME.patternIndex % STAGE_SNAPSHOT_CONFIG.length];
     if (GAME.snapshotTimer > snapshotConfig.interval) {
       if (
@@ -1213,7 +1220,7 @@ function updateObstacles() {
   }
 
   GAME.obstacles.forEach((o) => {
-    const speed = getSpeedMultiplier() * GAME_SPEED_SCALE;
+    const speed = getSpeedMultiplier() * GAME_SPEED_SCALE * dt;
     if (
       o.kind === "bullet" ||
       o.kind === "bigBullet" ||
@@ -1286,6 +1293,7 @@ function getObstacleHitbox(obstacle) {
 }
 
 function update() {
+  const dt = GAME.dtScale;
   if (GAME.state === "end_clearing") {
     const elapsed = GAME.time - GAME.clearStartTime;
     GAME.obstacles.forEach((o) => {
@@ -1295,10 +1303,10 @@ function update() {
         o.kind === "snapshotBullet" ||
         o.kind === "ceilingBullet"
       ) {
-        o.vy -= END_CLEAR_ACCEL;
-        o.vx *= 0.98;
-        o.x += o.vx;
-        o.y += o.vy;
+        o.vy -= END_CLEAR_ACCEL * dt;
+        o.vx *= Math.pow(0.98, dt);
+        o.x += o.vx * dt;
+        o.y += o.vy * dt;
       }
     });
     GAME.obstacles = GAME.obstacles.filter((o) => {
@@ -1380,7 +1388,7 @@ function update() {
   if (GAME.elapsedFromStart >= GAME.startDelayMs) {
     GAME.distance = Math.min(
       MAX_DISTANCE,
-      GAME.distance + GAME.scrollSpeed * getSpeedMultiplier() * GAME_SPEED_SCALE
+      GAME.distance + GAME.scrollSpeed * getSpeedMultiplier() * GAME_SPEED_SCALE * dt
     );
   }
   if (ENABLE_MILESTONE_FX) {
@@ -3284,8 +3292,15 @@ function draw() {
   if (shakeX || shakeY) ctx.restore();
 }
 
-function loop() {
-  GAME.time = performance.now();
+function loop(timestamp = performance.now()) {
+  if (!GAME.lastFrameTime) {
+    GAME.lastFrameTime = timestamp;
+  }
+  const deltaMs = Math.min(MAX_FRAME_DELTA_MS, Math.max(0, timestamp - GAME.lastFrameTime));
+  GAME.lastFrameTime = timestamp;
+  GAME.frameDeltaMs = deltaMs;
+  GAME.dtScale = deltaMs / TARGET_FRAME_MS || 1;
+  GAME.time = timestamp;
   GAME.elapsedFromStart = GAME.time - GAME.startAt;
   if (GAME.state !== GAME.prevState) {
     if (GAME.state === "title") {
@@ -3555,7 +3570,11 @@ window.addEventListener("keyup", (e) => {
 
 window.addEventListener("blur", clearMovementKeys);
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) clearMovementKeys();
+  if (document.hidden) {
+    clearMovementKeys();
+  } else {
+    GAME.lastFrameTime = 0;
+  }
 });
 
 document.querySelectorAll("[data-key]").forEach((button) => {
